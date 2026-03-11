@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { getVisitasPorPagamento } from '../services/visitasService';
 import { getPacientes } from '../services/pacientesService';
+import { getInternacoes } from '../services/internacoesService';
 import { Printer, Filter } from 'lucide-react';
 
 export default function RelatoriosList() {
     const [visitas, setVisitas] = useState([]);
-    const [pacientesMap, setPacientesMap] = useState({});
+    const [internacoesMap, setInternacoesMap] = useState({});
     const [loading, setLoading] = useState(true);
 
     // Filtros
@@ -19,14 +20,9 @@ export default function RelatoriosList() {
     const [listaMedicos, setListaMedicos] = useState([]);
 
     useEffect(() => {
-        // Inicializa com mês atual (dia 1 até ultimo dia)
-        const hoje = new Date();
-        const yyyy = hoje.getFullYear();
-        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
-        const ultimoDia = new Date(yyyy, hoje.getMonth() + 1, 0).getDate();
-        setDataInicio(`${yyyy}-${mm}-01`);
-        setDataFim(`${yyyy}-${mm}-${ultimoDia}`);
-
+        // Inicializa vazio (mostra todos os meses) até que o usuário pesquise uma data delimitada
+        setDataInicio('');
+        setDataFim('');
         loadData();
     }, []);
 
@@ -36,7 +32,17 @@ export default function RelatoriosList() {
             const pacs = await getPacientes();
             const pMap = {};
             pacs.forEach(p => pMap[p.id] = { nome: p.nome, prontuario: p.prontuario });
-            setPacientesMap(pMap);
+
+            const ints = await getInternacoes(false);
+            const iMap = {};
+            ints.forEach(i => {
+                iMap[i.id] = {
+                    numero_registro: i.numero_registro,
+                    paciente_nome: pMap[i.pacienteId]?.nome || 'Desconhecido',
+                    paciente_prontuario: pMap[i.pacienteId]?.prontuario || '-'
+                };
+            });
+            setInternacoesMap(iMap);
 
             const data = await getVisitasPorPagamento('Todos');
             setVisitas(data);
@@ -59,7 +65,7 @@ export default function RelatoriosList() {
         if (!v.data_hora) return false;
         const d = v.data_hora.split('T')[0];
 
-        // Filtro de Data
+        // Filtro de Data (Inclusivo)
         if (dataInicio && d < dataInicio) return false;
         if (dataFim && d > dataFim) return false;
 
@@ -192,10 +198,13 @@ export default function RelatoriosList() {
                                             {formatDataCurta(v.data_hora)}
                                         </td>
                                         <td className="p-2 border-r border-gray-200 font-mono text-gray-600">
-                                            {pacientesMap[v.pacienteId]?.prontuario || '-'}
+                                            {internacoesMap[v.internacaoId]?.paciente_prontuario || '-'}
                                         </td>
-                                        <td className="p-2 border-r border-gray-200 font-medium text-gray-900 uppercase">
-                                            {pacientesMap[v.pacienteId]?.nome || 'DESCONHECIDO'}
+                                        <td className="p-2 border-r border-gray-200 font-medium text-gray-900 uppercase leading-tight">
+                                            {internacoesMap[v.internacaoId]?.paciente_nome || 'DESCONHECIDO'}
+                                            <div className="text-[10px] text-blue-500 font-normal mt-0.5 lowercase normal-case">
+                                                Reg: {internacoesMap[v.internacaoId]?.numero_registro || '-'}
+                                            </div>
                                         </td>
                                         <td className="p-2 border-r border-gray-200 text-center text-gray-700 font-bold">
                                             {v.tipo_visita}
@@ -205,8 +214,8 @@ export default function RelatoriosList() {
                                         </td>
                                         <td className="p-2 text-center">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${v.status_pagamento === 'Pago' ? 'bg-green-100 text-green-800 print:border print:border-green-800 text-center inline-block w-full' :
-                                                    v.status_pagamento === 'Glosa' ? 'bg-red-100 text-red-800 print:border print:border-red-800 text-center inline-block w-full' :
-                                                        'bg-orange-100 text-orange-800 print:border print:border-orange-800 text-center inline-block w-full'
+                                                v.status_pagamento === 'Glosa' ? 'bg-red-100 text-red-800 print:border print:border-red-800 text-center inline-block w-full' :
+                                                    'bg-orange-100 text-orange-800 print:border print:border-orange-800 text-center inline-block w-full'
                                                 }`}>
                                                 {v.status_pagamento === 'Pendente' ? 'Aberto' : v.status_pagamento}
                                             </span>

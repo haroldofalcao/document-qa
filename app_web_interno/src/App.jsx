@@ -1,12 +1,13 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import PacientesList from './pages/PacientesList';
+import AdmissoesList from './pages/AdmissoesList';
 import VisitasList from './pages/VisitasList';
 import VisitasRetroativasList from './pages/VisitasRetroativasList';
 import VisitasFinanceiroList from './pages/VisitasFinanceiroList';
 import RelatoriosList from './pages/RelatoriosList';
 import Login from './pages/Login';
+import ImportData from './pages/ImportData';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Renderiza os filhos apenas se houver usuário, senão redireciona pro Login
@@ -44,8 +45,11 @@ function App() {
                         {/* Aba 5: Extratos e Relatórios unificados */}
                         <Route path="relatorios" element={<RelatoriosList />} />
 
-                        {/* Aba 1: Pacientes */}
-                        <Route path="pacientes" element={<PacientesList />} />
+                        {/* Rota Temporária de Migração */}
+                        <Route path="import" element={<ImportData />} />
+
+                        {/* Aba 1: Admissões (Leitos) */}
+                        <Route path="admissoes" element={<AdmissoesList />} />
                     </Route>
                 </Routes>
             </BrowserRouter>

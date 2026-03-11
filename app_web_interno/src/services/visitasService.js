@@ -75,6 +75,25 @@ export const getVisitasPorPagamento = async (status_pagamento) => {
     }
 };
 
+// Ler visitas por internação
+export const getVisitasPorInternacao = async (internacaoId) => {
+    try {
+        const q = query(
+            collection(db, collectionName),
+            where("internacaoId", "==", internacaoId)
+        );
+        const querySnapshot = await getDocs(q);
+        const visitas = [];
+        querySnapshot.forEach((doc) => {
+            visitas.push({ id: doc.id, ...doc.data() });
+        });
+        return visitas;
+    } catch (error) {
+        console.error("Erro ao buscar visitas da internação: ", error);
+        throw error;
+    }
+};
+
 // Atualizar dados financeiros da visita
 export const updatePagamentoVisita = async (id, dadosPagamento) => {
     try {

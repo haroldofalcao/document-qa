@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createVisita } from '../services/visitasService';
 import { getPacientes } from '../services/pacientesService';
+import { getInternacoes } from '../services/internacoesService';
 import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,8 +9,9 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
     const { currentUser } = useAuth();
     const nomeMedico = currentUser?.displayName || currentUser?.email || 'Médico Não Identificado';
 
-    const [pacientes, setPacientes] = useState([]);
+    const [admissoesAtivas, setAdmissoesAtivas] = useState([]);
     const [formData, setFormData] = useState({
+        internacaoId: '',
         pacienteId: '',
         tipo_visita: 'E', // default
         nome_medico: nomeMedico
@@ -26,15 +28,22 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
         }
     }, [isOpen]);
 
-    const loadPacientesAtivos = async () => {
+    const loadAdmissoesAtivas = async () => {
         setLoadingPacientes(true);
         try {
-            const allPacientes = await getPacientes();
-            // Filtra simulando o "Slice_Pacientes_Ativos" do AppSheet
-            const ativos = allPacientes.filter(p => p.status === 'ativo');
-            setPacientes(ativos);
+            const internacoes = await getInternacoes(true); // Apenas Ativas
+            const pacientes = await getPacientes();
+
+            const pacientesMap = pacientes.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+
+            const completas = internacoes.map(int => ({
+                ...int,
+                paciente: pacientesMap[int.pacienteId] || { nome: 'Desconhecido', prontuario: '-' }
+            }));
+
+            setAdmissoesAtivas(completas);
         } catch (err) {
-            setError("Falha ao carregar lista de pacientes.");
+            setError("Falha ao carregar lista de leitos ocupados.");
         } finally {
             setLoadingPacientes(false);
         }
@@ -42,12 +51,24 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
 
     if (!isOpen) return null;
 
+    const handleSelectChange = (e) => {
+        const selectedId = e.target.value;
+        const selectedAdmissao = admissoesAtivas.find(a => a.id === selectedId);
+        if (selectedAdmissao) {
+            setFormData({
+                ...formData,
+                internacaoId: selectedAdmissao.id,
+                pacienteId: selectedAdmissao.pacienteId
+            });
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-        if (!formData.pacienteId) {
-            setError("Selecione um paciente obrigatório.");
+        if (!formData.internacaoId || !formData.pacienteId) {
+            setError("Selecione um paciente internado obrigatório.");
             return;
         }
 
@@ -60,7 +81,7 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
             });
 
             // Sucesso
-            setFormData({ ...formData, pacienteId: '', tipo_visita: 'E', nome_medico: nomeMedico });
+            setFormData({ ...formData, internacaoId: '', pacienteId: '', tipo_visita: 'E', nome_medico: nomeMedico });
             onSuccess();
             onClose();
         } catch (err) {
@@ -87,22 +108,21 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
                         </div>
                     )}
 
-                    {/* Select de Paciente */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Paciente (Somente Ativos)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Paciente Internado (Leito Ativo)</label>
                         {loadingPacientes ? (
-                            <div className="p-2 text-sm text-gray-500">Carregando carteira de pacientes...</div>
+                            <div className="p-2 text-sm text-gray-500">Carregando mapa de leitos...</div>
                         ) : (
                             <select
                                 required
                                 className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
-                                value={formData.pacienteId}
-                                onChange={(e) => setFormData({ ...formData, pacienteId: e.target.value })}
+                                value={formData.internacaoId}
+                                onChange={handleSelectChange}
                             >
-                                <option value="" disabled>--- Selecione o Paciente ---</option>
-                                {pacientes.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.nome} (RG: {p.rg})
+                                <option value="" disabled>--- Selecione a Internação ---</option>
+                                {admissoesAtivas.map(adm => (
+                                    <option key={adm.id} value={adm.id}>
+                                        {adm.paciente.nome} - Reg: {adm.numero_registro}
                                     </option>
                                 ))}
                             </select>

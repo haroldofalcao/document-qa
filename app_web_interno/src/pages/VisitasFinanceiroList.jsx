@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { getVisitasPorPagamento, updatePagamentoVisita } from '../services/visitasService';
 import { getPacientes } from '../services/pacientesService';
+import { getInternacoes } from '../services/internacoesService';
 import { DollarSign, Check, Clock, AlertCircle } from 'lucide-react';
 
 export default function VisitasFinanceiroList() {
     const [visitas, setVisitas] = useState([]);
-    const [pacientesMap, setPacientesMap] = useState({});
+    const [internacoesMap, setInternacoesMap] = useState({});
     const [loading, setLoading] = useState(true);
 
     // Filtro ativo na tela
@@ -21,7 +22,16 @@ export default function VisitasFinanceiroList() {
             const pacs = await getPacientes();
             const pMap = {};
             pacs.forEach(p => pMap[p.id] = p.nome);
-            setPacientesMap(pMap);
+
+            const ints = await getInternacoes(false);
+            const iMap = {};
+            ints.forEach(i => {
+                iMap[i.id] = {
+                    numero_registro: i.numero_registro,
+                    paciente_nome: pMap[i.pacienteId] || 'Paciente Desconhecido'
+                };
+            });
+            setInternacoesMap(iMap);
 
             const data = await getVisitasPorPagamento(filtroStatus);
             setVisitas(data);
@@ -118,25 +128,45 @@ export default function VisitasFinanceiroList() {
                                             <td className="p-4 text-sm text-gray-600">
                                                 {formatDataCurta(v.data_hora)}
                                             </td>
-                                            <td className="p-4 font-medium text-gray-900 border-l-4 border-l-green-500 pl-3">
-                                                {pacientesMap[v.pacienteId] || 'Paciente Desconhecido'}
+                                            <td className="p-4 font-medium text-gray-900 border-l-4 border-l-green-500 pl-3 leading-tight">
+                                                {internacoesMap[v.internacaoId]?.paciente_nome || 'Paciente Desconhecido'}
+                                                <div className="text-xs text-blue-500 font-normal mt-0.5">
+                                                    Reg: {internacoesMap[v.internacaoId]?.numero_registro || '-'}
+                                                </div>
                                             </td>
                                             <td className="p-4 text-sm font-medium text-gray-700">{v.tipo_visita}</td>
                                             <td className="p-4 text-sm text-gray-600">{v.nome_medico}</td>
                                             <td className="p-4">
-                                                <div className="flex items-center gap-3">
-                                                    <select
-                                                        value={v.status_pagamento || 'Pendente'}
-                                                        onChange={(e) => handleStatusChange(v.id, e.target.value)}
-                                                        className={`text-sm rounded-lg p-2 font-medium border-2 focus:ring-0 outline-none transition-colors cursor-pointer ${v.status_pagamento === 'Pago' ? 'border-green-200 bg-green-50 text-green-700' :
-                                                                v.status_pagamento === 'Glosa' ? 'border-red-200 bg-red-50 text-red-700' :
-                                                                    'border-orange-200 bg-orange-50 text-orange-700'
-                                                            }`}
-                                                    >
-                                                        <option value="Pendente">Em Aberto</option>
-                                                        <option value="Pago">Pago</option>
-                                                        <option value="Glosa">Glosa</option>
-                                                    </select>
+                                                <div className="flex items-center gap-2">
+                                                    {(!v.status_pagamento || v.status_pagamento === 'Pendente') ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleStatusChange(v.id, 'Pago')}
+                                                                className="bg-green-100 hover:bg-green-200 text-green-700 font-semibold py-1.5 px-3 rounded-lg text-xs transition-colors border border-green-200 shadow-sm"
+                                                            >
+                                                                Marcar Pago
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleStatusChange(v.id, 'Glosa')}
+                                                                className="bg-red-100 hover:bg-red-200 text-red-700 font-semibold py-1.5 px-3 rounded-lg text-xs transition-colors border border-red-200 shadow-sm"
+                                                            >
+                                                                Glosar
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow-sm border ${v.status_pagamento === 'Pago' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                                                {v.status_pagamento}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => handleStatusChange(v.id, 'Pendente')}
+                                                                className="text-gray-400 hover:text-gray-700 underline text-xs"
+                                                                title="Desfazer"
+                                                            >
+                                                                Desfazer
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

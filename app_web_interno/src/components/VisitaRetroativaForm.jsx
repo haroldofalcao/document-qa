@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createVisita } from '../services/visitasService';
 import { getPacientes } from '../services/pacientesService';
+import { getInternacoes } from '../services/internacoesService';
 import { X, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,8 +9,9 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
     const { currentUser } = useAuth();
     const nomeMedico = currentUser?.displayName || currentUser?.email || 'Médico Não Identificado';
 
-    const [pacientes, setPacientes] = useState([]);
+    const [admissoesAtivas, setAdmissoesAtivas] = useState([]);
     const [formData, setFormData] = useState({
+        internacaoId: '',
         pacienteId: '',
         tipo_visita: 'E', // default
         nome_medico: nomeMedico,
@@ -21,9 +23,10 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
 
     useEffect(() => {
         if (isOpen) {
-            carregarPacientes();
+            loadAdmissoesAtivas();
             // Reseta form sempre que abre
             setFormData({
+                internacaoId: '',
                 pacienteId: '',
                 tipo_visita: 'E',
                 nome_medico: nomeMedico,
@@ -33,21 +36,40 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
         }
     }, [isOpen]);
 
-    const carregarPacientes = async () => {
+    const loadAdmissoesAtivas = async () => {
         try {
-            const data = await getPacientes();
-            // Filtra localmente apenas pacientes com status 'ativo' para mostrar no form
-            setPacientes(data.filter(p => p.status === 'ativo'));
+            const internacoes = await getInternacoes(true);
+            const pacientesData = await getPacientes();
+
+            const pacientesMap = pacientesData.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+            const completas = internacoes.map(int => ({
+                ...int,
+                paciente: pacientesMap[int.pacienteId] || { nome: 'Desconhecido', prontuario: '-' }
+            }));
+
+            setAdmissoesAtivas(completas);
         } catch (err) {
-            console.error("Erro ao carregar pacientes", err);
+            console.error("Erro ao carregar admissões", err);
+        }
+    };
+
+    const handleSelectChange = (e) => {
+        const selectedId = e.target.value;
+        const selectedAdmissao = admissoesAtivas.find(a => a.id === selectedId);
+        if (selectedAdmissao) {
+            setFormData({
+                ...formData,
+                internacaoId: selectedAdmissao.id,
+                pacienteId: selectedAdmissao.pacienteId
+            });
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!formData.pacienteId) {
-            setError('Por favor, selecione um paciente.');
+        if (!formData.internacaoId || !formData.pacienteId) {
+            setError('Por favor, selecione um paciente internado.');
             return;
         }
 
@@ -65,6 +87,7 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
             const dataEmulada = new Date(`${formData.data_retroativa}T12:00:00.000Z`).toISOString();
 
             await createVisita({
+                internacaoId: formData.internacaoId,
                 pacienteId: formData.pacienteId,
                 tipo_visita: formData.tipo_visita,
                 nome_medico: formData.nome_medico,
@@ -122,18 +145,18 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
                     {/* Select Dinâmico */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Paciente (Ativos) *
+                            Paciente Internado (Leito Ativo) *
                         </label>
                         <select
                             required
                             className="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
-                            value={formData.pacienteId}
-                            onChange={(e) => setFormData({ ...formData, pacienteId: e.target.value })}
+                            value={formData.internacaoId}
+                            onChange={handleSelectChange}
                         >
-                            <option value="">Selecione um paciente...</option>
-                            {pacientes.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                    {p.nome} - RG: {p.rg} (Pront. {p.prontuario})
+                            <option value="">Selecione uma internação...</option>
+                            {admissoesAtivas.map((adm) => (
+                                <option key={adm.id} value={adm.id}>
+                                    {adm.paciente.nome} - Reg: {adm.numero_registro}
                                 </option>
                             ))}
                         </select>

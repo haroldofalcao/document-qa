@@ -1,10 +1,11 @@
-import { Outlet, Link, useNavigate } from "react-router-dom";
-import { Users, LayoutDashboard, LogOut, DollarSign, History, FileText, Printer } from "lucide-react";
+import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { Users, LayoutDashboard, LogOut, DollarSign, Database, Printer } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Layout() {
     const { currentUser, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleLogout = async () => {
         try {
@@ -24,27 +25,27 @@ export default function Layout() {
                 </div>
 
                 <nav className="p-4 space-y-2 flex-1">
-                    <Link to="/pacientes" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                    <Link to="/admissoes" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/admissoes' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
                         <Users size={20} />
-                        <span className="font-medium">Pacientes</span>
+                        <span className="font-medium">Admissões (Leitos)</span>
                     </Link>
 
-                    <Link to="/" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                    <Link to="/" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
                         <LayoutDashboard size={20} />
                         <span className="font-medium">Visitas Diárias</span>
                     </Link>
 
-                    <Link to="/visitas/retroativas" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                        <History size={20} />
-                        <span className="font-medium">Visitas Antigas</span>
+                    <Link to="/import" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/import' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
+                        <Database size={20} />
+                        <span className="font-medium">Migrar Dados</span>
                     </Link>
 
-                    <Link to="/pagamentos" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                    <Link to="/pagamentos" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/pagamentos' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
                         <DollarSign size={20} />
                         <span className="font-medium">Repasses / Pagamentos</span>
                     </Link>
 
-                    <Link to="/relatorios" className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                    <Link to="/relatorios" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/relatorios' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
                         <Printer size={20} />
                         <span className="font-medium">Extratos e Relatórios</span>
                     </Link>

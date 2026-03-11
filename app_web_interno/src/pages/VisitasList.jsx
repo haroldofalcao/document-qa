@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { getVisitas, deleteVisita } from '../services/visitasService';
 import { getPacientes } from '../services/pacientesService';
+import { getInternacoes } from '../services/internacoesService';
 import { Plus, Trash2, Calendar, User, Activity } from 'lucide-react';
 import VisitaForm from '../components/VisitaForm';
 
 export default function VisitasList() {
     const [visitas, setVisitas] = useState([]);
-    const [pacientesMap, setPacientesMap] = useState({});
+    const [internacoesMap, setInternacoesMap] = useState({});
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -18,15 +19,41 @@ export default function VisitasList() {
         try {
             setLoading(true);
 
-            // Carrega pacientes para criar um mapa de ID -> Nome para exibição na tabela
+            // Carrega pacientes e internações para fazer os joins
             const pacs = await getPacientes();
             const pMap = {};
             pacs.forEach(p => pMap[p.id] = p.nome);
-            setPacientesMap(pMap);
+
+            const ints = await getInternacoes(false); // carrega todas (histórico)
+            const iMap = {};
+            ints.forEach(i => {
+                iMap[i.id] = {
+                    numero_registro: i.numero_registro,
+                    paciente_nome: pMap[i.pacienteId] || 'Paciente Desconhecido'
+                };
+            });
+            setInternacoesMap(iMap);
 
             // Carrega visitas
             const data = await getVisitas();
-            setVisitas(data);
+
+            // Filtrar apenas do dia de hoje (em timezone local)
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+
+            const visitasDeHoje = data.filter(v => {
+                if (!v.data_hora) return false;
+                const ptDate = new Date(v.data_hora);
+                const vYyyy = ptDate.getFullYear();
+                const vMm = String(ptDate.getMonth() + 1).padStart(2, '0');
+                const vDd = String(ptDate.getDate()).padStart(2, '0');
+                return `${vYyyy}-${vMm}-${vDd}` === todayStr;
+            });
+
+            setVisitas(visitasDeHoje);
         } catch (error) {
             alert("Erro ao carregar dados do dashboard");
         } finally {
@@ -123,8 +150,11 @@ export default function VisitasList() {
                                         <td className="p-4 text-sm text-gray-600 whitespace-nowrap">
                                             {formatDateTime(v.data_hora)}
                                         </td>
-                                        <td className="p-4 font-medium text-gray-900">
-                                            {pacientesMap[v.pacienteId] || 'Paciente Desconhecido'}
+                                        <td className="p-4 font-medium text-gray-900 leading-tight">
+                                            {internacoesMap[v.internacaoId]?.paciente_nome || 'Paciente Desconhecido'}
+                                            <div className="text-xs text-blue-500 font-normal mt-0.5">
+                                                Reg: {internacoesMap[v.internacaoId]?.numero_registro || '-'}
+                                            </div>
                                         </td>
                                         <td className="p-4">
                                             {getTipoVisitaLabel(v.tipo_visita)}
