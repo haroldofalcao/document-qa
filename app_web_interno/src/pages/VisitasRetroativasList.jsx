@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { getVisitas, deleteVisita } from '../services/visitasService';
 import { getPacientes } from '../services/pacientesService';
 import { History, Plus, Trash2 } from 'lucide-react';
-import VisitaRetroativaForm from '../components/VisitaRetroativaForm'; // Novo Modal
+import VisitaRetroativaForm from '../components/VisitaRetroativaForm';
+import ConfirmModal from '../components/ConfirmModal';
+import { getTipoVisitaLabel } from '../utils/visitaUtils';
 
 export default function VisitasRetroativasList() {
     const [visitas, setVisitas] = useState([]);
     const [pacientesMap, setPacientesMap] = useState({});
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [paginaErro, setPaginaErro] = useState('');
+    const [confirm, setConfirm] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -17,8 +21,8 @@ export default function VisitasRetroativasList() {
     const loadData = async () => {
         try {
             setLoading(true);
+            setPaginaErro('');
 
-            // 1. Busca os pacientes para montar um "dicionário" de ID -> Rótulo (Nome - RG)
             const pacs = await getPacientes();
             const pMap = {};
             pacs.forEach(p => {
@@ -26,29 +30,34 @@ export default function VisitasRetroativasList() {
             });
             setPacientesMap(pMap);
 
-            // 2. Busca todas as visitas (neste contexto podemos puxar todas e talvez paginar depois)
             const data = await getVisitas();
             setVisitas(data);
         } catch (error) {
             console.error(error);
-            alert("Erro ao carregar os dados das visitas.");
+            setPaginaErro('Erro ao carregar os dados das visitas. Tente recarregar a página.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Tem certeza que deseja excluir este registro de visita? Isso removerá a pendência financeira associada.')) {
-            try {
-                await deleteVisita(id);
-                loadData(); // Recarrega apos deletar
-            } catch (error) {
-                alert("Erro ao remover visita.");
-            }
-        }
+    const handleDelete = (id) => {
+        setConfirm({
+            title: 'Excluir Visita',
+            message: 'Tem certeza que deseja excluir este registro de visita? Isso removerá a pendência financeira associada.',
+            variant: 'danger',
+            confirmLabel: 'Excluir',
+            onConfirm: async () => {
+                setConfirm(null);
+                try {
+                    await deleteVisita(id);
+                    loadData();
+                } catch (error) {
+                    setPaginaErro('Erro ao remover visita: ' + error.message);
+                }
+            },
+        });
     };
 
-    // Helper p/ Formatar Data da Visita
     const formatDataCurta = (isoString) => {
         if (!isoString) return '-';
         return new Date(isoString).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -56,6 +65,16 @@ export default function VisitasRetroativasList() {
 
     return (
         <div className="space-y-6">
+            <ConfirmModal
+                isOpen={!!confirm}
+                title={confirm?.title}
+                message={confirm?.message}
+                variant={confirm?.variant}
+                confirmLabel={confirm?.confirmLabel}
+                onConfirm={confirm?.onConfirm}
+                onCancel={() => setConfirm(null)}
+            />
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -73,7 +92,13 @@ export default function VisitasRetroativasList() {
                 </button>
             </div>
 
-            {/* Listagem Global de Visitas (como um log histórico geral) */}
+            {paginaErro && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex justify-between items-center">
+                    <span>{paginaErro}</span>
+                    <button onClick={() => setPaginaErro('')} className="text-red-400 hover:text-red-600 ml-4 font-bold">✕</button>
+                </div>
+            )}
+
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 {loading ? (
                     <div className="p-8 text-center text-gray-500">Carregando histórico completo...</div>
@@ -103,9 +128,7 @@ export default function VisitasRetroativasList() {
                                             {pacientesMap[v.pacienteId] || 'Paciente Desconhecido'}
                                         </td>
                                         <td className="p-4">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-                                                {v.tipo_visita}
-                                            </span>
+                                            {getTipoVisitaLabel(v.tipo_visita)}
                                         </td>
                                         <td className="p-4 text-sm text-gray-600">{v.nome_medico}</td>
                                         <td className="p-4 text-center">
@@ -128,9 +151,7 @@ export default function VisitasRetroativasList() {
             <VisitaRetroativaForm
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
-                onSuccess={() => {
-                    loadData();
-                }}
+                onSuccess={loadData}
             />
         </div>
     );

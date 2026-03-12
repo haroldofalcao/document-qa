@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 import { collection, addDoc, getDocs, doc, setDoc, query, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ImportData() {
     const [pacientesFile, setPacientesFile] = useState(null);
@@ -9,6 +10,7 @@ export default function ImportData() {
     const [logs, setLogs] = useState([]);
     const [isImporting, setIsImporting] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
+    const [confirmLimpar, setConfirmLimpar] = useState(false);
 
     const addLog = (msg) => {
         setLogs(prev => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`]);
@@ -26,8 +28,6 @@ export default function ImportData() {
     };
 
     const clearDatabase = async () => {
-        if (!window.confirm("ATENÇÃO: Isso apagará TODOS os pacientes, admissões e visitas do banco de dados para você recomeçar limpo. Tem certeza?")) return;
-
         setIsClearing(true);
         setLogs(["Limpando banco de dados... isso pode demorar um pouco."]);
 
@@ -45,8 +45,7 @@ export default function ImportData() {
                 await Promise.all(deletePromises);
                 addLog(`${count} documentos apagados em ${colName}.`);
             }
-            addLog("Banco de dados completamente limpo!");
-            alert("Banco limpo com sucesso! Agora você pode iniciar a importação.");
+            addLog("Banco de dados completamente limpo! Agora você pode iniciar a importação.");
         } catch (error) {
             console.error(error);
             addLog(`ERRO ao limpar banco: ${error.message}`);
@@ -236,6 +235,16 @@ export default function ImportData() {
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-6">
+            <ConfirmModal
+                isOpen={confirmLimpar}
+                title="Limpar Banco de Dados"
+                message="ATENÇÃO: Isso apagará TODOS os pacientes, admissões e visitas do banco de dados. Esta ação é irreversível. Tem certeza?"
+                variant="danger"
+                confirmLabel="Sim, Apagar Tudo"
+                onConfirm={() => { setConfirmLimpar(false); clearDatabase(); }}
+                onCancel={() => setConfirmLimpar(false)}
+            />
+
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <h1 className="text-2xl font-bold text-gray-800 mb-4">Migração de Dados (CSV para Firebase)</h1>
                 <p className="text-gray-600 mb-6">
@@ -265,7 +274,7 @@ export default function ImportData() {
 
                 <div className="flex justify-between items-center">
                     <button
-                        onClick={clearDatabase}
+                        onClick={() => setConfirmLimpar(true)}
                         disabled={isImporting || isClearing}
                         className="bg-red-100 hover:bg-red-200 text-red-700 disabled:opacity-50 px-4 py-3 rounded-lg font-bold shadow-sm transition-all text-sm border border-red-200"
                     >

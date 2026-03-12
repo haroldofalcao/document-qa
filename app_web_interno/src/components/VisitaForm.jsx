@@ -8,13 +8,15 @@ import { useAuth } from '../contexts/AuthContext';
 export default function VisitaForm({ isOpen, onClose, onSuccess }) {
     const { currentUser } = useAuth();
     const nomeMedico = currentUser?.displayName || currentUser?.email || 'Médico Não Identificado';
+    const emailMedico = currentUser?.email || '';
 
     const [admissoesAtivas, setAdmissoesAtivas] = useState([]);
     const [formData, setFormData] = useState({
         internacaoId: '',
         pacienteId: '',
         tipo_visita: 'E', // default
-        nome_medico: nomeMedico
+        nome_medico: nomeMedico,
+        email_medico: emailMedico
     });
 
     // Controle de estado
@@ -24,7 +26,7 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
 
     useEffect(() => {
         if (isOpen) {
-            loadPacientesAtivos();
+            loadAdmissoesAtivas();
         }
     }, [isOpen]);
 
@@ -81,7 +83,7 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
             });
 
             // Sucesso
-            setFormData({ ...formData, internacaoId: '', pacienteId: '', tipo_visita: 'E', nome_medico: nomeMedico });
+            setFormData({ ...formData, internacaoId: '', pacienteId: '', tipo_visita: 'E', nome_medico: nomeMedico, email_medico: emailMedico });
             onSuccess();
             onClose();
         } catch (err) {
@@ -131,34 +133,25 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
 
                     {/* Radio Group: Tipo de Visita */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Visita Realizada</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Visita Clínico-Nutricional</label>
                         <div className="grid grid-cols-3 gap-3">
-                            <label className={`cursor-pointer border rounded-lg p-3 text-center transition-all ${formData.tipo_visita === 'E' ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'hover:bg-gray-50 border-gray-200'}`}>
-                                <input
-                                    type="radio" name="tipoVisita" value="E" className="sr-only"
-                                    checked={formData.tipo_visita === 'E'}
-                                    onChange={(e) => setFormData({ ...formData, tipo_visita: e.target.value })}
-                                />
-                                <span className="block font-medium text-gray-900">Apenas 'E'</span>
-                            </label>
-
-                            <label className={`cursor-pointer border rounded-lg p-3 text-center transition-all ${formData.tipo_visita === 'P' ? 'bg-purple-50 border-purple-500 ring-1 ring-purple-500' : 'hover:bg-gray-50 border-gray-200'}`}>
-                                <input
-                                    type="radio" name="tipoVisita" value="P" className="sr-only"
-                                    checked={formData.tipo_visita === 'P'}
-                                    onChange={(e) => setFormData({ ...formData, tipo_visita: e.target.value })}
-                                />
-                                <span className="block font-medium text-gray-900">Apenas 'P'</span>
-                            </label>
-
-                            <label className={`cursor-pointer border rounded-lg p-3 text-center transition-all ${formData.tipo_visita === 'EP' ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'hover:bg-gray-50 border-gray-200'}`}>
-                                <input
-                                    type="radio" name="tipoVisita" value="EP" className="sr-only"
-                                    checked={formData.tipo_visita === 'EP'}
-                                    onChange={(e) => setFormData({ ...formData, tipo_visita: e.target.value })}
-                                />
-                                <span className="block font-medium text-gray-900">Fez 'E' e 'P'</span>
-                            </label>
+                            {[
+                                { value: 'E', label: 'Enteral (E)', active: 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' },
+                                { value: 'P', label: 'Parenteral (P)', active: 'bg-purple-50 border-purple-500 ring-1 ring-purple-500' },
+                                { value: 'EP', label: 'Ambas (EP)', active: 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' },
+                            ].map(({ value, label, active }) => (
+                                <label
+                                    key={value}
+                                    className={`cursor-pointer border rounded-lg p-3 text-center transition-all ${formData.tipo_visita === value ? active : 'hover:bg-gray-50 border-gray-200'}`}
+                                >
+                                    <input
+                                        type="radio" name="tipoVisita" value={value} className="sr-only"
+                                        checked={formData.tipo_visita === value}
+                                        onChange={(e) => setFormData({ ...formData, tipo_visita: e.target.value })}
+                                    />
+                                    <span className="block font-medium text-gray-900 text-sm">{label}</span>
+                                </label>
+                            ))}
                         </div>
                     </div>
 

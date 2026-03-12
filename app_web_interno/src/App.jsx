@@ -6,14 +6,24 @@ import VisitasList from './pages/VisitasList';
 import VisitasRetroativasList from './pages/VisitasRetroativasList';
 import VisitasFinanceiroList from './pages/VisitasFinanceiroList';
 import RelatoriosList from './pages/RelatoriosList';
+import PanoramaPage from './pages/PanoramaPage';
+import MedicosPage from './pages/MedicosPage';
 import Login from './pages/Login';
 import ImportData from './pages/ImportData';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-// Renderiza os filhos apenas se houver usuário, senão redireciona pro Login
+// Redireciona para login se não estiver autenticado
 const PrivateRoute = ({ children }) => {
     const { currentUser } = useAuth();
     return currentUser ? children : <Navigate to="/login" />;
+};
+
+// Redireciona para o dashboard se não for admin
+const AdminRoute = ({ children }) => {
+    const { currentUser, isAdmin } = useAuth();
+    if (!currentUser) return <Navigate to="/login" />;
+    if (!isAdmin) return <Navigate to="/" />;
+    return children;
 };
 
 function App() {
@@ -33,23 +43,36 @@ function App() {
                             </PrivateRoute>
                         }
                     >
-                        {/* Aba 2: Visitas Diárias */}
+                        {/* Dashboard de Visitas Diárias */}
                         <Route index element={<VisitasList />} />
 
-                        {/* Aba 3: Visitas Antigas */}
+                        {/* Visitas Retroativas */}
                         <Route path="visitas/retroativas" element={<VisitasRetroativasList />} />
 
-                        {/* Aba 4: Registro de Pagamento */}
+                        {/* Repasses / Pagamentos */}
                         <Route path="pagamentos" element={<VisitasFinanceiroList />} />
 
-                        {/* Aba 5: Extratos e Relatórios unificados */}
+                        {/* Extratos e Relatórios */}
                         <Route path="relatorios" element={<RelatoriosList />} />
 
-                        {/* Rota Temporária de Migração */}
+                        {/* Migração de Dados */}
                         <Route path="import" element={<ImportData />} />
 
-                        {/* Aba 1: Admissões (Leitos) */}
+                        {/* Admissões (Leitos) */}
                         <Route path="admissoes" element={<AdmissoesList />} />
+
+                        {/* Panorama Operacional */}
+                        <Route path="panorama" element={<PanoramaPage />} />
+
+                        {/* Gestão de Médicos — somente admins */}
+                        <Route
+                            path="medicos"
+                            element={
+                                <AdminRoute>
+                                    <MedicosPage />
+                                </AdminRoute>
+                            }
+                        />
                     </Route>
                 </Routes>
             </BrowserRouter>

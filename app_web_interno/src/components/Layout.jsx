@@ -1,9 +1,9 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { Users, LayoutDashboard, LogOut, DollarSign, Database, Printer } from "lucide-react";
+import { Users, LayoutDashboard, LogOut, DollarSign, Database, Printer, BarChart2, Stethoscope } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Layout() {
-    const { currentUser, logout } = useAuth();
+    const { currentUser, medicoData, isAdmin, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -25,6 +25,11 @@ export default function Layout() {
                 </div>
 
                 <nav className="p-4 space-y-2 flex-1">
+                    <Link to="/panorama" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/panorama' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
+                        <BarChart2 size={20} />
+                        <span className="font-medium">Panorama</span>
+                    </Link>
+
                     <Link to="/admissoes" className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === '/admissoes' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}>
                         <Users size={20} />
                         <span className="font-medium">Admissões (Leitos)</span>
@@ -52,11 +57,24 @@ export default function Layout() {
                 </nav>
 
                 <div className="p-4 border-t border-gray-200">
+                    {isAdmin && (
+                        <div className="px-4 mb-2">
+                            <Link
+                                to="/medicos"
+                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm ${location.pathname === '/medicos' ? 'bg-yellow-50 text-yellow-700 font-semibold' : 'text-gray-500 hover:bg-gray-50'}`}
+                            >
+                                <Stethoscope size={18} />
+                                <span className="font-medium">Médicos</span>
+                            </Link>
+                        </div>
+                    )}
+
                     <div className="mb-4 px-4">
                         <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Logado como</p>
                         <p className="text-sm font-semibold text-gray-800 truncate" title={currentUser?.email}>
-                            {currentUser?.displayName || currentUser?.email || 'Médico'}
+                            {medicoData?.nome || currentUser?.displayName || currentUser?.email || 'Médico'}
                         </p>
+                        {isAdmin && <p className="text-xs text-yellow-600 font-medium mt-0.5">Administrador</p>}
                     </div>
                     <button
                         onClick={handleLogout}

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Stethoscope } from 'lucide-react';
 
 export default function Login() {
-    const { loginWithGoogle } = useAuth();
+    const { loginWithGoogle, authError, setAuthError } = useAuth();
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -12,15 +12,18 @@ export default function Login() {
     const handleGoogleLogin = async () => {
         try {
             setError('');
+            setAuthError('');
             setLoading(true);
             await loginWithGoogle();
-            navigate('/'); // Redireciona para o Dashboard após logar
+            navigate('/');
         } catch (err) {
-            setError('Falha ao fazer login com o Google. Certifique-se de autorizar a janela pop-up.');
+            setError('Falha ao abrir o login do Google. Verifique se pop-ups estão permitidos.');
         } finally {
             setLoading(false);
         }
     };
+
+    const mensagemErro = authError || error;
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -40,9 +43,9 @@ export default function Login() {
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
-                    {error && (
-                        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center">
-                            {error}
+                    {mensagemErro && (
+                        <div className="bg-red-50 text-red-700 border border-red-200 p-4 rounded-lg text-sm mb-6 text-center leading-relaxed">
+                            {mensagemErro}
                         </div>
                     )}
 

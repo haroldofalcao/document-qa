@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getVisitasPorPagamento, updatePagamentoVisita } from '../services/visitasService';
 import { getPacientes } from '../services/pacientesService';
 import { getInternacoes } from '../services/internacoesService';
-import { DollarSign, Check, Clock, AlertCircle } from 'lucide-react';
+import { DollarSign, Check } from 'lucide-react';
+import { getTipoVisitaLabel } from '../utils/visitaUtils';
 
 export default function VisitasFinanceiroList() {
     const [visitas, setVisitas] = useState([]);
@@ -16,9 +17,12 @@ export default function VisitasFinanceiroList() {
         loadData();
     }, [filtroStatus]);
 
+    const [paginaErro, setPaginaErro] = useState('');
+
     const loadData = async () => {
         try {
             setLoading(true);
+            setPaginaErro('');
             const pacs = await getPacientes();
             const pMap = {};
             pacs.forEach(p => pMap[p.id] = p.nome);
@@ -36,7 +40,7 @@ export default function VisitasFinanceiroList() {
             const data = await getVisitasPorPagamento(filtroStatus);
             setVisitas(data);
         } catch (error) {
-            alert("Erro ao carregar dados financeiros");
+            setPaginaErro('Erro ao carregar dados financeiros. Tente recarregar a página.');
         } finally {
             setLoading(false);
         }
@@ -48,9 +52,9 @@ export default function VisitasFinanceiroList() {
                 status_pagamento: novoStatus,
                 data_pagamento: (novoStatus === 'Pago' || novoStatus === 'Glosa') ? new Date().toISOString().split('T')[0] : null
             });
-            loadData(); // Recarrega a lista
+            loadData();
         } catch (error) {
-            alert("Erro ao atualizar status financeiro.");
+            setPaginaErro('Erro ao atualizar status financeiro.');
         }
     };
 
@@ -68,6 +72,12 @@ export default function VisitasFinanceiroList() {
 
     return (
         <div className="space-y-6">
+            {paginaErro && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex justify-between items-center">
+                    <span>{paginaErro}</span>
+                    <button onClick={() => setPaginaErro('')} className="text-red-400 hover:text-red-600 ml-4 font-bold">✕</button>
+                </div>
+            )}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -134,7 +144,7 @@ export default function VisitasFinanceiroList() {
                                                     Reg: {internacoesMap[v.internacaoId]?.numero_registro || '-'}
                                                 </div>
                                             </td>
-                                            <td className="p-4 text-sm font-medium text-gray-700">{v.tipo_visita}</td>
+                                            <td className="p-4">{getTipoVisitaLabel(v.tipo_visita)}</td>
                                             <td className="p-4 text-sm text-gray-600">{v.nome_medico}</td>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2">

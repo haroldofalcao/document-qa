@@ -26,9 +26,12 @@ export default function RelatoriosList() {
         loadData();
     }, []);
 
+    const [paginaErro, setPaginaErro] = useState('');
+
     const loadData = async () => {
         try {
             setLoading(true);
+            setPaginaErro('');
             const pacs = await getPacientes();
             const pMap = {};
             pacs.forEach(p => pMap[p.id] = { nome: p.nome, prontuario: p.prontuario });
@@ -51,7 +54,7 @@ export default function RelatoriosList() {
             const medicosSet = new Set(data.map(v => v.nome_medico));
             setListaMedicos(Array.from(medicosSet).filter(Boolean).sort());
         } catch (error) {
-            alert('Erro ao gerar base do relatório');
+            setPaginaErro('Erro ao gerar base do relatório. Tente recarregar a página.');
         } finally {
             setLoading(false);
         }
@@ -94,6 +97,12 @@ export default function RelatoriosList() {
 
     return (
         <div className="space-y-6">
+            {paginaErro && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex justify-between items-center print:hidden">
+                    <span>{paginaErro}</span>
+                    <button onClick={() => setPaginaErro('')} className="text-red-400 hover:text-red-600 ml-4 font-bold">✕</button>
+                </div>
+            )}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -234,16 +243,32 @@ export default function RelatoriosList() {
                 )}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 @media print {
                     @page { size: landscape; margin: 1cm; }
                     body {
                         -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
                         background-color: white !important;
                     }
-                    /* Esconde barra lateral no App se houver navegação global */
+                    /* Esconde a barra lateral e o cabeçalho */
                     aside, header, nav { display: none !important; }
-                    main { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+                    /* Remove overflow e altura fixos para imprimir TODO o conteúdo */
+                    html, body { height: auto !important; overflow: visible !important; }
+                    main {
+                        overflow: visible !important;
+                        height: auto !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+                    /* O container flex pai (h-screen) também precisa ser liberado */
+                    body > div, #root > div, #root > div > div {
+                        height: auto !important;
+                        overflow: visible !important;
+                        display: block !important;
+                    }
                 }
             `}</style>
         </div>

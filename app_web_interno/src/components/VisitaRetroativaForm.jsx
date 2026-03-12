@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
     const { currentUser } = useAuth();
     const nomeMedico = currentUser?.displayName || currentUser?.email || 'Médico Não Identificado';
+    const emailMedico = currentUser?.email || '';
 
     const [admissoesAtivas, setAdmissoesAtivas] = useState([]);
     const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
         pacienteId: '',
         tipo_visita: 'E', // default
         nome_medico: nomeMedico,
+        email_medico: emailMedico,
         data_retroativa: new Date().toISOString().split('T')[0] // Data selecionável
     });
 
@@ -30,6 +32,7 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
                 pacienteId: '',
                 tipo_visita: 'E',
                 nome_medico: nomeMedico,
+                email_medico: emailMedico,
                 data_retroativa: new Date().toISOString().split('T')[0]
             });
             setError('');
@@ -91,6 +94,7 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
                 pacienteId: formData.pacienteId,
                 tipo_visita: formData.tipo_visita,
                 nome_medico: formData.nome_medico,
+                email_medico: formData.email_medico,
                 status_pagamento: 'Pendente',
                 data_hora: dataEmulada // <--- Aqui injetamos a data manual! Override do service
             });
