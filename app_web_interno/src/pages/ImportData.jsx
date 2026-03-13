@@ -254,9 +254,10 @@ export default function ImportData() {
             <ConfirmModal
                 isOpen={confirmLimpar}
                 title="Limpar Banco de Dados"
-                message="ATENÇÃO: Isso apagará TODOS os pacientes, admissões e visitas do banco de dados. Esta ação é irreversível. Tem certeza?"
+                message="ATENÇÃO: Isso apagará TODOS os pacientes, admissões e visitas do banco de dados. Esta ação é irreversível."
                 variant="danger"
                 confirmLabel="Sim, Apagar Tudo"
+                confirmPhrase="Desejo apagar tudo"
                 onConfirm={() => { setConfirmLimpar(false); clearDatabase(); }}
                 onCancel={() => setConfirmLimpar(false)}
             />

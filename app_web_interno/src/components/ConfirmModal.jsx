@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Info, CheckCircle } from 'lucide-react';
 
 /**
@@ -11,6 +11,7 @@ import { AlertTriangle, Info, CheckCircle } from 'lucide-react';
  *   confirmLabel  — string (padrão: "Confirmar")
  *   cancelLabel   — string (padrão: "Cancelar") | null para ocultar botão cancelar
  *   variant       — 'danger' | 'warning' | 'info'
+ *   confirmPhrase — string opcional: se fornecido, exige que o usuário digite a frase antes de confirmar
  *   onConfirm     — função chamada ao clicar em confirmar
  *   onCancel      — função chamada ao clicar em cancelar ou fora do modal
  */
@@ -21,10 +22,19 @@ export default function ConfirmModal({
     confirmLabel = 'Confirmar',
     cancelLabel = 'Cancelar',
     variant = 'danger',
+    confirmPhrase,
     onConfirm,
     onCancel,
 }) {
+    const [typed, setTyped] = useState('');
+
+    useEffect(() => {
+        if (isOpen) setTyped('');
+    }, [isOpen]);
+
     if (!isOpen) return null;
+
+    const phraseOk = !confirmPhrase || typed === confirmPhrase;
 
     const styles = {
         danger: {
@@ -69,8 +79,22 @@ export default function ConfirmModal({
                     <h3 className={`font-bold text-base ${s.titleColor}`}>{title}</h3>
                 </div>
 
-                <div className="p-5">
+                <div className="p-5 space-y-4">
                     <p className="text-gray-600 text-sm leading-relaxed">{message}</p>
+                    {confirmPhrase && (
+                        <div>
+                            <p className="text-sm text-gray-500 mb-1.5">
+                                Para confirmar, digite: <span className="font-semibold text-red-600">{confirmPhrase}</span>
+                            </p>
+                            <input
+                                type="text"
+                                value={typed}
+                                onChange={(e) => setTyped(e.target.value)}
+                                placeholder={confirmPhrase}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-3 justify-end px-5 pb-5">
@@ -84,7 +108,8 @@ export default function ConfirmModal({
                     )}
                     <button
                         onClick={onConfirm}
-                        className={`px-5 py-2 rounded-lg font-medium transition-colors text-sm ${s.btn}`}
+                        disabled={!phraseOk}
+                        className={`px-5 py-2 rounded-lg font-medium transition-colors text-sm ${s.btn} disabled:opacity-40 disabled:cursor-not-allowed`}
                     >
                         {confirmLabel}
                     </button>
