@@ -255,10 +255,7 @@ export default function AdmissoesList() {
                                         <td className="p-4 font-medium text-blue-600">{adm.numero_registro}</td>
                                         <td className="p-4 font-medium text-gray-900">{adm.paciente.prontuario}</td>
                                         <td className="p-4">
-                                            {adm.status === 'ativo'
-                                                ? <span className="text-gray-700">{adm.paciente.nome}</span>
-                                                : <span className="text-gray-300 italic text-sm">— oculto (busque pelo nome) —</span>
-                                            }
+                                            <span className="text-gray-700">{adm.paciente.nome}</span>
                                         </td>
                                         <td className="p-4">
                                             <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${adm.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
@@ -285,10 +282,7 @@ export default function AdmissoesList() {
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
                                             <p className="font-semibold text-gray-800 truncate">
-                                                {adm.status === 'ativo'
-                                                    ? adm.paciente.nome
-                                                    : <span className="text-gray-400 italic text-sm">— oculto —</span>
-                                                }
+                                                {adm.paciente.nome}
                                             </p>
                                             <p className="text-xs text-gray-400 mt-0.5">Pron. {adm.paciente.prontuario}</p>
                                         </div>

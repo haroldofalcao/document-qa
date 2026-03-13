@@ -1,6 +1,6 @@
 import { db } from './firebase';
 import {
-    collection, addDoc, getDocs, doc, updateDoc,
+    collection, addDoc, getDocs, doc, updateDoc, deleteDoc,
     query, where, limit
 } from 'firebase/firestore';
 
@@ -43,4 +43,9 @@ export async function createMedico({ email, nome, admin = false }) {
 /** Atualiza campos de um médico (ativo, admin, nome) */
 export async function updateMedico(id, data) {
     await updateDoc(doc(db, COL, id), data);
+}
+
+/** Remove um médico do sistema. Visitas anteriores são preservadas. */
+export async function deleteMedico(id) {
+    await deleteDoc(doc(db, COL, id));
 }

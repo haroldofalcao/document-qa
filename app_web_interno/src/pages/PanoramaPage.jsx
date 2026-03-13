@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getVisitas } from '../services/visitasService';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend
+    PieChart, Pie, Cell
 } from 'recharts';
 import { TrendingUp, Loader } from 'lucide-react';
 
@@ -78,14 +78,23 @@ export default function PanoramaPage() {
     const totalTipo = dadosTipo.reduce((s, d) => s + d.value, 0);
 
     // ── Visitas por médico (top 10) ──────────────────────────────────────────
+    const NOMES_IGNORADOS = ['migração', 'migracao', 'importação', 'importacao'];
+
     const dadosMedicos = (() => {
         const contagem = {};
         visitas.forEach(v => {
             if (!v.nome_medico) return;
+            if (NOMES_IGNORADOS.includes(v.nome_medico.toLowerCase().trim())) return;
             contagem[v.nome_medico] = (contagem[v.nome_medico] || 0) + 1;
         });
+
+        const labelDe = (nome) => {
+            if (nome.includes('@')) return nome.split('@')[0];
+            return nome.split(' ').slice(0, 2).join(' ');
+        };
+
         return Object.entries(contagem)
-            .map(([nome, total]) => ({ nome: nome.split(' ')[0], nomeCompleto: nome, total }))
+            .map(([nome, total]) => ({ nome: labelDe(nome), nomeCompleto: nome, total }))
             .sort((a, b) => b.total - a.total)
             .slice(0, 10);
     })();
@@ -203,7 +212,7 @@ export default function PanoramaPage() {
                         <p className="text-gray-400 text-sm text-center py-8">Sem dados.</p>
                     ) : (
                         <>
-                            <ResponsiveContainer width="100%" height={220}>
+                            <ResponsiveContainer width="100%" height={200}>
                                 <PieChart>
                                     <Pie
                                         data={dadosTipo}
@@ -218,14 +227,28 @@ export default function PanoramaPage() {
                                             <Cell key={entry.name} fill={CORES_TIPO[entry.name]} />
                                         ))}
                                     </Pie>
-                                    <Legend
-                                        formatter={(value, entry) =>
-                                            `${value}: ${entry.payload.value} (${totalTipo > 0 ? ((entry.payload.value / totalTipo) * 100).toFixed(1) : 0}%)`
-                                        }
-                                        wrapperStyle={{ fontSize: '13px' }}
-                                    />
                                 </PieChart>
                             </ResponsiveContainer>
+                            {/* Legenda HTML — não sobrepõe o gráfico no mobile */}
+                            <div className="flex flex-col gap-1.5 mt-3">
+                                {dadosTipo.map((entry) => (
+                                    <div key={entry.name} className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className="inline-block w-3 h-3 rounded-sm shrink-0"
+                                                style={{ backgroundColor: CORES_TIPO[entry.name] }}
+                                            />
+                                            <span className="text-gray-700">{entry.name}</span>
+                                        </div>
+                                        <span className="text-gray-500 font-medium">
+                                            {entry.value}&nbsp;
+                                            <span className="text-gray-400 font-normal">
+                                                ({totalTipo > 0 ? ((entry.value / totalTipo) * 100).toFixed(1) : 0}%)
+                                            </span>
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </>
                     )}
                 </div>
@@ -244,7 +267,7 @@ export default function PanoramaPage() {
                             >
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                                 <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                                <YAxis type="category" dataKey="nome" tick={{ fontSize: 12, fill: '#374151' }} width={70} />
+                                <YAxis type="category" dataKey="nome" tick={{ fontSize: 12, fill: '#374151' }} width={110} />
                                 <Tooltip content={<TooltipMedico />} />
                                 <Bar dataKey="total" fill="#6366f1" radius={[0, 4, 4, 0]} />
                             </BarChart>

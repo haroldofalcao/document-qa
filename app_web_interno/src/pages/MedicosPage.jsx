@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getMedicos, createMedico, updateMedico } from '../services/medicosService';
+import { getMedicos, createMedico, updateMedico, deleteMedico } from '../services/medicosService';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, ShieldCheck, ShieldOff, UserCheck, UserMinus, X } from 'lucide-react';
+import { UserPlus, ShieldCheck, ShieldOff, UserCheck, UserMinus, X, Pencil, Trash2 } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function MedicosPage() {
@@ -18,7 +18,13 @@ export default function MedicosPage() {
     const [salvando, setSalvando] = useState(false);
     const [erroModal, setErroModal] = useState('');
 
-    // Modal de confirmação
+    // Modal de edição de nome
+    const [editando, setEditando] = useState(null); // médico sendo editado
+    const [nomeEditado, setNomeEditado] = useState('');
+    const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+    const [erroEdicao, setErroEdicao] = useState('');
+
+    // Modal de confirmação genérico
     const [confirm, setConfirm] = useState(null);
 
     useEffect(() => {
@@ -30,12 +36,29 @@ export default function MedicosPage() {
             setLoading(true);
             setPaginaErro('');
             const data = await getMedicos();
+
+            // Deduplica por e-mail: mantém o registro mais "completo" (admin > ativo > primeiro)
+            const porEmail = new Map();
+            data.forEach(m => {
+                const key = m.email?.toLowerCase().trim();
+                if (!key) return;
+                const existente = porEmail.get(key);
+                if (!existente) {
+                    porEmail.set(key, m);
+                } else {
+                    // Prefere admin, depois ativo
+                    const maisCompleto = m.admin || (!existente.admin && m.ativo) ? m : existente;
+                    porEmail.set(key, maisCompleto);
+                }
+            });
+            const deduplicados = [...porEmail.values()];
+
             // Ordena: admins primeiro, depois por nome
-            data.sort((a, b) => {
+            deduplicados.sort((a, b) => {
                 if (a.admin !== b.admin) return b.admin - a.admin;
                 return (a.nome || '').localeCompare(b.nome || '');
             });
-            setMedicos(data);
+            setMedicos(deduplicados);
         } catch (err) {
             setPaginaErro('Erro ao carregar lista de médicos.');
         } finally {
@@ -52,8 +75,6 @@ export default function MedicosPage() {
             setErroModal('Informe um e-mail válido.');
             return;
         }
-
-        // Verifica duplicidade
         if (medicos.some(m => m.email.toLowerCase() === novoEmail.toLowerCase())) {
             setErroModal('Este e-mail já está cadastrado.');
             return;
@@ -74,14 +95,65 @@ export default function MedicosPage() {
         }
     };
 
+    // ── Editar nome ───────────────────────────────────────────────────────────
+    const abrirEdicao = (medico) => {
+        setEditando(medico);
+        setNomeEditado(medico.nome || '');
+        setErroEdicao('');
+    };
+
+    const handleSalvarEdicao = async (e) => {
+        e.preventDefault();
+        if (!nomeEditado.trim()) {
+            setErroEdicao('O nome não pode ficar em branco.');
+            return;
+        }
+        setSalvandoEdicao(true);
+        try {
+            await updateMedico(editando.id, { nome: nomeEditado.trim() });
+            setEditando(null);
+            loadMedicos();
+        } catch (err) {
+            setErroEdicao('Erro ao salvar. Tente novamente.');
+        } finally {
+            setSalvandoEdicao(false);
+        }
+    };
+
+    // ── Excluir médico ────────────────────────────────────────────────────────
+    const handleExcluir = (medico) => {
+        if (medico.email === medicoData?.email) {
+            setPaginaErro('Você não pode excluir sua própria conta.');
+            return;
+        }
+        const totalAdmins = medicos.filter(m => m.admin && m.ativo).length;
+        if (medico.admin && totalAdmins <= 1) {
+            setPaginaErro('Não é possível excluir o último administrador do sistema.');
+            return;
+        }
+        setConfirm({
+            title: 'Excluir Médico',
+            message: `Deseja excluir permanentemente ${medico.nome}? As visitas registradas por ele serão preservadas.`,
+            variant: 'danger',
+            confirmLabel: 'Excluir',
+            onConfirm: async () => {
+                setConfirm(null);
+                try {
+                    await deleteMedico(medico.id);
+                    loadMedicos();
+                } catch (err) {
+                    setPaginaErro('Erro ao excluir médico.');
+                }
+            },
+        });
+    };
+
     // ── Ativar / Desativar ────────────────────────────────────────────────────
     const handleToggleAtivo = (medico) => {
-        // Proteção: não pode desativar a si mesmo
         if (medico.email === medicoData?.email) {
             setPaginaErro('Você não pode desativar sua própria conta.');
             return;
         }
-
         const ativando = !medico.ativo;
         setConfirm({
             title: ativando ? 'Reativar Médico' : 'Desativar Médico',
@@ -104,19 +176,15 @@ export default function MedicosPage() {
 
     // ── Promover / Rebaixar admin ─────────────────────────────────────────────
     const handleToggleAdmin = (medico) => {
-        // Proteção: não pode rebaixar a si mesmo
         if (medico.email === medicoData?.email) {
             setPaginaErro('Você não pode alterar suas próprias permissões de administrador.');
             return;
         }
-
-        // Proteção: não pode remover o último admin
         const totalAdmins = medicos.filter(m => m.admin && m.ativo).length;
         if (medico.admin && totalAdmins <= 1) {
             setPaginaErro('Não é possível remover o último administrador do sistema.');
             return;
         }
-
         const promovendo = !medico.admin;
         setConfirm({
             title: promovendo ? 'Promover a Administrador' : 'Remover Administrador',
@@ -211,6 +279,45 @@ export default function MedicosPage() {
                 </div>
             )}
 
+            {/* Modal: Editar Nome */}
+            {editando && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
+                            <h3 className="text-lg font-bold text-gray-800">Editar Nome</h3>
+                            <button onClick={() => setEditando(null)} className="text-gray-400 hover:text-gray-600">
+                                <X size={22} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSalvarEdicao} className="p-6 space-y-4">
+                            {erroEdicao && (
+                                <div className="bg-red-50 text-red-700 border border-red-200 p-3 rounded-lg text-sm">{erroEdicao}</div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                                <input
+                                    type="text"
+                                    required
+                                    autoFocus
+                                    value={nomeEditado}
+                                    onChange={(e) => setNomeEditado(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                />
+                                <p className="text-xs text-gray-400 mt-1">E-mail: {editando.email}</p>
+                            </div>
+                            <div className="flex gap-3 justify-end pt-2">
+                                <button type="button" onClick={() => setEditando(null)} className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors text-sm">
+                                    Cancelar
+                                </button>
+                                <button type="submit" disabled={salvandoEdicao} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium transition-colors text-sm disabled:opacity-70">
+                                    {salvandoEdicao ? 'Salvando...' : 'Salvar'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Cabeçalho */}
             <div className="flex justify-between items-center">
                 <div>
@@ -273,6 +380,15 @@ export default function MedicosPage() {
                                         </td>
                                         <td className="p-4">
                                             <div className="flex justify-center gap-3">
+                                                {/* Editar nome */}
+                                                <button
+                                                    onClick={() => abrirEdicao(m)}
+                                                    className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                    title="Editar nome"
+                                                >
+                                                    <Pencil size={17} />
+                                                </button>
+
                                                 {/* Promover / rebaixar admin */}
                                                 <button
                                                     onClick={() => handleToggleAdmin(m)}
@@ -291,6 +407,16 @@ export default function MedicosPage() {
                                                     title={m.ativo ? 'Desativar acesso' : 'Reativar acesso'}
                                                 >
                                                     {m.ativo ? <UserMinus size={18} /> : <UserCheck size={18} />}
+                                                </button>
+
+                                                {/* Excluir */}
+                                                <button
+                                                    onClick={() => handleExcluir(m)}
+                                                    disabled={ehVoce}
+                                                    className="text-gray-400 hover:text-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Excluir médico"
+                                                >
+                                                    <Trash2 size={17} />
                                                 </button>
                                             </div>
                                         </td>
