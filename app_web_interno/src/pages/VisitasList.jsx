@@ -40,23 +40,15 @@ export default function VisitasList() {
 
             const data = await getVisitas();
 
-            // Filtra apenas as visitas do dia de hoje (timezone local)
+            // Filtra apenas as visitas do dia de hoje
             const today = new Date();
-            const todayStr = [
-                today.getFullYear(),
-                String(today.getMonth() + 1).padStart(2, '0'),
-                String(today.getDate()).padStart(2, '0'),
-            ].join('-');
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
             const visitasDeHoje = data.filter(v => {
                 if (!v.data_hora) return false;
-                const d = new Date(v.data_hora);
-                const dStr = [
-                    d.getFullYear(),
-                    String(d.getMonth() + 1).padStart(2, '0'),
-                    String(d.getDate()).padStart(2, '0'),
-                ].join('-');
-                return dStr === todayStr;
+                // Suporta tanto YYYY-MM-DD (novo) quanto ISO datetime (dados antigos)
+                const dataStr = v.data_hora.length === 10 ? v.data_hora : v.data_hora.split('T')[0];
+                return dataStr === todayStr;
             });
 
             setVisitas(visitasDeHoje);
@@ -85,10 +77,11 @@ export default function VisitasList() {
         });
     };
 
-    const formatDateTime = (isoString) => {
-        if (!isoString) return '-';
-        const d = new Date(isoString);
-        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const formatData = (val) => {
+        if (!val) return '-';
+        const str = val.length === 10 ? val : val.split('T')[0];
+        const [y, m, d] = str.split('-');
+        return `${d}/${m}/${y}`;
     };
 
     // Contagens para os cards
@@ -186,7 +179,7 @@ export default function VisitasList() {
                             <table className="w-full text-left border-collapse min-w-max">
                                 <thead>
                                     <tr className="bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
-                                        <th className="p-4">Data e Hora</th>
+                                        <th className="p-4">Data</th>
                                         <th className="p-4">Paciente</th>
                                         <th className="p-4">Tipo</th>
                                         <th className="p-4">Médico</th>
@@ -196,7 +189,7 @@ export default function VisitasList() {
                                 <tbody className="divide-y divide-gray-200">
                                     {visitas.map((v) => (
                                         <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="p-4 text-sm text-gray-600 whitespace-nowrap">{formatDateTime(v.data_hora)}</td>
+                                            <td className="p-4 text-sm text-gray-600 whitespace-nowrap">{formatData(v.data_hora)}</td>
                                             <td className="p-4 font-medium text-gray-900 leading-tight">
                                                 {internacoesMap[v.internacaoId]?.paciente_nome || 'Paciente Desconhecido'}
                                                 <div className="text-xs text-blue-500 font-normal mt-0.5">
@@ -241,7 +234,7 @@ export default function VisitasList() {
                                             <User size={14} className="text-gray-400" />
                                             <span className="truncate max-w-[160px]">{v.nome_medico}</span>
                                         </div>
-                                        <span className="text-xs text-gray-400">{formatDateTime(v.data_hora)}</span>
+                                        <span className="text-xs text-gray-400">{formatData(v.data_hora)}</span>
                                     </div>
                                     <div className="flex justify-end pt-1">
                                         <button onClick={() => handleDelete(v.id)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors">

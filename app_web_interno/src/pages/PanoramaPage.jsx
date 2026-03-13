@@ -54,8 +54,10 @@ export default function PanoramaPage() {
 
         visitas.forEach(v => {
             if (!v.data_hora) return;
-            const d = new Date(v.data_hora);
-            const entry = meses.find(m => m.ano === d.getFullYear() && m.mes === d.getMonth());
+            // Extrai ano e mês diretamente da string para evitar bugs de fuso horário
+            const dateStr = v.data_hora.length === 10 ? v.data_hora : v.data_hora.split('T')[0];
+            const [ano, mes] = dateStr.split('-').map(Number);
+            const entry = meses.find(m => m.ano === ano && m.mes === mes - 1);
             if (entry) entry.total++;
         });
 
@@ -175,7 +177,7 @@ export default function PanoramaPage() {
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                     <p className="text-sm text-gray-500 font-medium">Profissionais</p>
                     <p className="text-3xl font-bold text-gray-800 mt-1">
-                        {new Set(visitas.map(v => v.nome_medico).filter(Boolean)).size}
+                        {new Set(visitas.map(v => v.nome_medico).filter(n => n && !NOMES_IGNORADOS.includes(n.toLowerCase().trim()))).size}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">médicos ativos</p>
                 </div>

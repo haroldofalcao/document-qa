@@ -142,7 +142,7 @@ export default function RelatoriosList() {
                         <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
                             <option value="Todos">Todos</option>
                             <option value="Pendente">Em Aberto</option>
-                            <option value="Pago">Pago</option>
+                            <option value="Pago">Baixa Dada</option>
                             <option value="Glosa">Glosa</option>
                         </select>
                     </div>
@@ -175,7 +175,7 @@ export default function RelatoriosList() {
                     <p className="text-sm text-gray-600 mt-1">
                         Período: {formatDataCurta(dataInicio)} a {formatDataCurta(dataFim)}
                         {filtroMedico !== 'Todos' && ` | Médico: ${filtroMedico}`}
-                        {filtroStatus !== 'Todos' && ` | Status: ${filtroStatus}`}
+                        {filtroStatus !== 'Todos' && ` | Status: ${filtroStatus === 'Pago' ? 'Baixa Dada' : filtroStatus}`}
                     </p>
                 </div>
 
@@ -226,7 +226,7 @@ export default function RelatoriosList() {
                                                 v.status_pagamento === 'Glosa' ? 'bg-red-100 text-red-800 print:border print:border-red-800 text-center inline-block w-full' :
                                                     'bg-orange-100 text-orange-800 print:border print:border-orange-800 text-center inline-block w-full'
                                                 }`}>
-                                                {v.status_pagamento === 'Pendente' ? 'Aberto' : v.status_pagamento}
+                                                {v.status_pagamento === 'Pendente' ? 'Aberto' : v.status_pagamento === 'Pago' ? 'Baixa Dada' : v.status_pagamento}
                                             </span>
                                         </td>
                                     </tr>

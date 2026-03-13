@@ -3,12 +3,19 @@ import { db } from './firebase';
 
 const collectionName = 'visitas';
 
-// Criar nova visita
+// Retorna a data de hoje no formato YYYY-MM-DD (horário local)
+const hojeStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Criar nova visita — grava apenas a data (sem horário)
+// Se visitaData já tiver data_hora (visita retroativa), usa ela; senão usa hoje
 export const createVisita = async (visitaData) => {
     try {
         const docRef = await addDoc(collection(db, collectionName), {
             ...visitaData,
-            data_hora: new Date().toISOString()
+            data_hora: visitaData.data_hora || hojeStr()
         });
         return docRef.id;
     } catch (error) {

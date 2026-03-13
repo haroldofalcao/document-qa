@@ -143,7 +143,7 @@ export default function VisitasFinanceiroList() {
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
-                            {status === 'Pendente' ? 'Em Aberto' : status}
+                            {status === 'Pendente' ? 'Em Aberto' : status === 'Pago' ? 'Baixa Dada' : status}
                         </button>
                     ))}
                 </div>
@@ -268,7 +268,7 @@ export default function VisitasFinanceiroList() {
                                                             onClick={() => handleStatusChange(v.id, 'Pago')}
                                                             className="bg-green-100 hover:bg-green-200 text-green-700 font-semibold py-1.5 px-3 rounded-lg text-xs transition-colors border border-green-200 shadow-sm"
                                                         >
-                                                            Marcar Pago
+                                                            Dar Baixa
                                                         </button>
                                                         <button
                                                             onClick={() => handleStatusChange(v.id, 'Glosa')}
@@ -280,7 +280,7 @@ export default function VisitasFinanceiroList() {
                                                 ) : (
                                                     <div className="flex items-center gap-2">
                                                         <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow-sm border ${v.status_pagamento === 'Pago' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                                            {v.status_pagamento}
+                                                            {v.status_pagamento === 'Pago' ? 'Baixa Dada' : v.status_pagamento}
                                                         </span>
                                                         <button
                                                             onClick={() => handleStatusChange(v.id, 'Pendente')}

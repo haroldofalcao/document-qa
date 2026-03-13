@@ -85,18 +85,14 @@ export default function VisitaRetroativaForm({ isOpen, onClose, onSuccess }) {
         setError('');
 
         try {
-            // Converte a data selecionada pra o formato esperado pelo serviço
-            // Adiciona um horario fake (meio dia) para evitar bug de UTC caindo no dia anterior
-            const dataEmulada = new Date(`${formData.data_retroativa}T12:00:00.000Z`).toISOString();
-
-            await createVisita({
+                await createVisita({
                 internacaoId: formData.internacaoId,
                 pacienteId: formData.pacienteId,
                 tipo_visita: formData.tipo_visita,
                 nome_medico: formData.nome_medico,
                 email_medico: formData.email_medico,
                 status_pagamento: 'Pendente',
-                data_hora: dataEmulada // <--- Aqui injetamos a data manual! Override do service
+                data_hora: formData.data_retroativa // YYYY-MM-DD — sem horário
             });
 
             // Sucesso
