@@ -187,7 +187,8 @@ export default function AdmissoesList() {
                     onClick={() => setIsModalOpen(true)}
                 >
                     <Plus size={20} />
-                    Nova Admissão
+                    <span className="hidden sm:inline">Nova Admissão</span>
+                    <span className="sm:hidden">Admitir</span>
                 </button>
             </div>
 
@@ -234,73 +235,92 @@ export default function AdmissoesList() {
                             : 'Nenhum resultado para os filtros aplicados.'}
                     </div>
                 ) : (
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
-                                <th className="p-4">Admissão</th>
-                                <th className="p-4">Registro (Atend.)</th>
-                                <th className="p-4">Prontuário</th>
-                                <th className="p-4">Paciente</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {admissoesFiltradas.map((adm) => (
-                                <tr key={adm.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="p-4 text-sm text-gray-500">{formatDataCurta(adm.data_admissao)}</td>
-                                    <td className="p-4 font-medium text-blue-600">{adm.numero_registro}</td>
-                                    <td className="p-4 font-medium text-gray-900">{adm.paciente.prontuario}</td>
-                                    <td className="p-4">
-                                        {adm.status === 'ativo'
-                                            ? <span className="text-gray-700">{adm.paciente.nome}</span>
-                                            : <span className="text-gray-300 italic text-sm">— oculto (busque pelo nome) —</span>
-                                        }
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${adm.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
-                                            {adm.status === 'ativo' ? 'Internado' : `Alta em ${formatDataCurta(adm.data_alta)}`}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 flex justify-center gap-3">
-                                        <button
-                                            onClick={() => handleEdit(adm)}
-                                            className="text-gray-400 hover:text-blue-500 transition-colors"
-                                            title="Editar Admissão"
-                                        >
-                                            <Edit size={18} />
-                                        </button>
-
-                                        {adm.status === 'ativo' ? (
-                                            <button
-                                                onClick={() => handleAlta(adm)}
-                                                className="text-gray-400 hover:text-orange-500 transition-colors"
-                                                title="Registrar Alta"
-                                            >
-                                                <UserMinus size={18} />
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => handleReadmitir(adm)}
-                                                className="text-gray-400 hover:text-green-600 transition-colors"
-                                                title="Readmitir neste mesmo Registro"
-                                            >
-                                                <UserCheck size={18} />
-                                            </button>
-                                        )}
-
-                                        <button
-                                            onClick={() => handleDelete(adm)}
-                                            className="text-gray-400 hover:text-red-600 transition-colors"
-                                            title="Excluir Admissão"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </td>
+                    <>
+                        {/* Tabela — desktop */}
+                        <table className="hidden md:table w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
+                                    <th className="p-4">Admissão</th>
+                                    <th className="p-4">Registro (Atend.)</th>
+                                    <th className="p-4">Prontuário</th>
+                                    <th className="p-4">Paciente</th>
+                                    <th className="p-4">Status</th>
+                                    <th className="p-4 text-center">Ações</th>
                                 </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {admissoesFiltradas.map((adm) => (
+                                    <tr key={adm.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="p-4 text-sm text-gray-500">{formatDataCurta(adm.data_admissao)}</td>
+                                        <td className="p-4 font-medium text-blue-600">{adm.numero_registro}</td>
+                                        <td className="p-4 font-medium text-gray-900">{adm.paciente.prontuario}</td>
+                                        <td className="p-4">
+                                            {adm.status === 'ativo'
+                                                ? <span className="text-gray-700">{adm.paciente.nome}</span>
+                                                : <span className="text-gray-300 italic text-sm">— oculto (busque pelo nome) —</span>
+                                            }
+                                        </td>
+                                        <td className="p-4">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${adm.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
+                                                {adm.status === 'ativo' ? 'Internado' : `Alta em ${formatDataCurta(adm.data_alta)}`}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 flex justify-center gap-3">
+                                            <button onClick={() => handleEdit(adm)} className="text-gray-400 hover:text-blue-500 transition-colors" title="Editar"><Edit size={18} /></button>
+                                            {adm.status === 'ativo'
+                                                ? <button onClick={() => handleAlta(adm)} className="text-gray-400 hover:text-orange-500 transition-colors" title="Registrar Alta"><UserMinus size={18} /></button>
+                                                : <button onClick={() => handleReadmitir(adm)} className="text-gray-400 hover:text-green-600 transition-colors" title="Readmitir"><UserCheck size={18} /></button>
+                                            }
+                                            <button onClick={() => handleDelete(adm)} className="text-gray-400 hover:text-red-600 transition-colors" title="Excluir"><Trash2 size={18} /></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {/* Cards — mobile */}
+                        <div className="md:hidden divide-y divide-gray-100">
+                            {admissoesFiltradas.map((adm) => (
+                                <div key={adm.id} className="p-4 space-y-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-gray-800 truncate">
+                                                {adm.status === 'ativo'
+                                                    ? adm.paciente.nome
+                                                    : <span className="text-gray-400 italic text-sm">— oculto —</span>
+                                                }
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-0.5">Pron. {adm.paciente.prontuario}</p>
+                                        </div>
+                                        <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold ${adm.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
+                                            {adm.status === 'ativo' ? 'Internado' : 'Alta'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                                        <span>Reg. <span className="text-blue-600 font-medium">{adm.numero_registro}</span></span>
+                                        <span>Adm. {formatDataCurta(adm.data_admissao)}</span>
+                                        {adm.status !== 'ativo' && <span>Alta {formatDataCurta(adm.data_alta)}</span>}
+                                    </div>
+                                    <div className="flex gap-3 pt-1">
+                                        <button onClick={() => handleEdit(adm)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors">
+                                            <Edit size={14} /> Editar
+                                        </button>
+                                        {adm.status === 'ativo'
+                                            ? <button onClick={() => handleAlta(adm)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-orange-500 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors">
+                                                <UserMinus size={14} /> Alta
+                                              </button>
+                                            : <button onClick={() => handleReadmitir(adm)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-green-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors">
+                                                <UserCheck size={14} /> Readmitir
+                                              </button>
+                                        }
+                                        <button onClick={() => handleDelete(adm)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors ml-auto">
+                                            <Trash2 size={14} /> Excluir
+                                        </button>
+                                    </div>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </>
                 )}
             </div>
         </div>

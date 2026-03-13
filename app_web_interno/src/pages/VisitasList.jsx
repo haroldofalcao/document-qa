@@ -115,15 +115,16 @@ export default function VisitasList() {
 
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Dashboard Diário de Visitas</h2>
-                    <p className="text-gray-500 mt-1">Acompanhe e registre os atendimentos realizados.</p>
+                    <h2 className="text-2xl font-bold text-gray-800">Visitas Diárias</h2>
+                    <p className="text-gray-500 mt-1 hidden sm:block">Acompanhe e registre os atendimentos realizados.</p>
                 </div>
                 <button
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
                     onClick={() => setIsModalOpen(true)}
                 >
                     <Plus size={20} />
-                    Registrar Visita
+                    <span className="hidden sm:inline">Registrar Visita</span>
+                    <span className="sm:hidden">Registrar</span>
                 </button>
             </div>
 
@@ -179,52 +180,78 @@ export default function VisitasList() {
                         <p>Nenhuma visita registrada ainda hoje.</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-max">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
-                                    <th className="p-4">Data e Hora</th>
-                                    <th className="p-4">Paciente</th>
-                                    <th className="p-4">Tipo</th>
-                                    <th className="p-4">Médico</th>
-                                    <th className="p-4 text-center">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {visitas.map((v) => (
-                                    <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="p-4 text-sm text-gray-600 whitespace-nowrap">
-                                            {formatDateTime(v.data_hora)}
-                                        </td>
-                                        <td className="p-4 font-medium text-gray-900 leading-tight">
-                                            {internacoesMap[v.internacaoId]?.paciente_nome || 'Paciente Desconhecido'}
-                                            <div className="text-xs text-blue-500 font-normal mt-0.5">
-                                                Reg: {internacoesMap[v.internacaoId]?.numero_registro || '-'}
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            {getTipoVisitaLabel(v.tipo_visita)}
-                                        </td>
-                                        <td className="p-4 flex items-center gap-2 text-sm text-gray-600">
-                                            <User size={16} className="text-gray-400" />
-                                            {v.nome_medico}
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex justify-center">
-                                                <button
-                                                    onClick={() => handleDelete(v.id)}
-                                                    className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                                                    title="Excluir Visita"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
+                    <>
+                        {/* Tabela — desktop */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-max">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-600">
+                                        <th className="p-4">Data e Hora</th>
+                                        <th className="p-4">Paciente</th>
+                                        <th className="p-4">Tipo</th>
+                                        <th className="p-4">Médico</th>
+                                        <th className="p-4 text-center">Ações</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {visitas.map((v) => (
+                                        <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="p-4 text-sm text-gray-600 whitespace-nowrap">{formatDateTime(v.data_hora)}</td>
+                                            <td className="p-4 font-medium text-gray-900 leading-tight">
+                                                {internacoesMap[v.internacaoId]?.paciente_nome || 'Paciente Desconhecido'}
+                                                <div className="text-xs text-blue-500 font-normal mt-0.5">
+                                                    Reg: {internacoesMap[v.internacaoId]?.numero_registro || '-'}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">{getTipoVisitaLabel(v.tipo_visita)}</td>
+                                            <td className="p-4 flex items-center gap-2 text-sm text-gray-600">
+                                                <User size={16} className="text-gray-400" />
+                                                {v.nome_medico}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex justify-center">
+                                                    <button onClick={() => handleDelete(v.id)} className="text-gray-400 hover:text-red-600 transition-colors p-1" title="Excluir Visita">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Cards — mobile */}
+                        <div className="md:hidden divide-y divide-gray-100">
+                            {visitas.map((v) => (
+                                <div key={v.id} className="p-4 space-y-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-gray-800 truncate">
+                                                {internacoesMap[v.internacaoId]?.paciente_nome || 'Paciente Desconhecido'}
+                                            </p>
+                                            <p className="text-xs text-blue-500 mt-0.5">
+                                                Reg: {internacoesMap[v.internacaoId]?.numero_registro || '-'}
+                                            </p>
+                                        </div>
+                                        <div className="shrink-0">{getTipoVisitaLabel(v.tipo_visita)}</div>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm text-gray-500">
+                                        <div className="flex items-center gap-1.5">
+                                            <User size={14} className="text-gray-400" />
+                                            <span className="truncate max-w-[160px]">{v.nome_medico}</span>
+                                        </div>
+                                        <span className="text-xs text-gray-400">{formatDateTime(v.data_hora)}</span>
+                                    </div>
+                                    <div className="flex justify-end pt-1">
+                                        <button onClick={() => handleDelete(v.id)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors">
+                                            <Trash2 size={14} /> Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
             </div>
         </div>

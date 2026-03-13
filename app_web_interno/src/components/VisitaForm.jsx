@@ -94,8 +94,8 @@ export default function VisitaForm({ isOpen, onClose, onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 z-50">
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md max-h-[95vh] overflow-y-auto">
                 <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-blue-50">
                     <h2 className="text-xl font-bold text-blue-800">Registrar Visita Diária</h2>
                     <button onClick={onClose} className="text-blue-400 hover:text-blue-600 transition-colors">
