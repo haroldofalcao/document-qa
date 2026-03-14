@@ -9,7 +9,6 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
     const [formData, setFormData] = useState({
         prontuario: '',
         nome: '',
-        rg: '',
         numero_registro: '',
         data_admissao: new Date().toISOString().split('T')[0]
     });
@@ -30,7 +29,6 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
                 setFormData({
                     prontuario: admissaoParaEditar.paciente.prontuario,
                     nome: admissaoParaEditar.paciente.nome,
-                    rg: admissaoParaEditar.paciente.rg,
                     numero_registro: admissaoParaEditar.numero_registro,
                     data_admissao: admissaoParaEditar.data_admissao.split('T')[0]
                 });
@@ -39,7 +37,6 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
                 setFormData({
                     prontuario: '',
                     nome: '',
-                    rg: '',
                     numero_registro: '',
                     data_admissao: new Date().toISOString().split('T')[0]
                 });
@@ -61,12 +58,12 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
             const paciente = await getPacienteByProntuario(formData.prontuario);
             if (paciente) {
                 setPacienteEncontrado(paciente);
-                setFormData(prev => ({ ...prev, nome: paciente.nome, rg: paciente.rg }));
+                setFormData(prev => ({ ...prev, nome: paciente.nome }));
                 setDuplicatasSuspeitas([]);
             } else {
                 setPacienteEncontrado(null);
                 if (pacienteEncontrado) {
-                    setFormData(prev => ({ ...prev, nome: '', rg: '' }));
+                    setFormData(prev => ({ ...prev, nome: '' }));
                 }
             }
         } catch (err) {
@@ -100,7 +97,7 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
         setLoading(true);
 
         try {
-            if (!formData.prontuario || !formData.nome || !formData.rg || !formData.numero_registro || !formData.data_admissao) {
+            if (!formData.prontuario || !formData.nome || !formData.numero_registro || !formData.data_admissao) {
                 throw new Error('Por favor, preencha todos os campos.');
             }
 
@@ -126,7 +123,6 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
                 batch.set(pacienteRef, {
                     prontuario: Number(formData.prontuario),
                     nome: formData.nome,
-                    rg: formData.rg,
                     createdAt: new Date().toISOString()
                 });
 
@@ -143,7 +139,7 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
                 await batch.commit();
             }
 
-            setFormData({ prontuario: '', nome: '', rg: '', numero_registro: '', data_admissao: new Date().toISOString().split('T')[0] });
+            setFormData({ prontuario: '', nome: '', numero_registro: '', data_admissao: new Date().toISOString().split('T')[0] });
             setPacienteEncontrado(null);
             setDuplicatasSuspeitas([]);
             onSuccess();
@@ -236,7 +232,6 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
                                                         <li key={p.id} className="text-xs text-amber-700">
                                                             <span className="font-medium">{p.nome}</span>
                                                             {p.prontuario ? <span className="text-amber-500"> — Pront. {p.prontuario}</span> : null}
-                                                            {p.rg ? <span className="text-amber-500"> — RG {p.rg}</span> : null}
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -249,18 +244,6 @@ export default function AdmissaoForm({ isOpen, onClose, onSuccess, admissaoParaE
                                 )}
                             </div>
 
-                            <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">RG</label>
-                                <input
-                                    type="text"
-                                    required
-                                    disabled={!!pacienteEncontrado}
-                                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg outline-none transition-colors ${pacienteEncontrado ? 'bg-gray-100 text-gray-600 border-transparent' : 'focus:ring-2 focus:ring-blue-500 focus:border-blue-500'}`}
-                                    value={formData.rg}
-                                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
-                                    placeholder="Apenas números e letras"
-                                />
-                            </div>
                         </div>
                     </div>
 

@@ -144,7 +144,6 @@ export default function ImportData() {
                     const newPacienteRef = await addDoc(collection(db, 'pacientes'), {
                         prontuario: '',
                         nome: row.Nome || 'Sem Nome',
-                        rg: '',
                         createdAt: new Date().toISOString(),
                     });
 

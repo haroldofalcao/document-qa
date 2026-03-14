@@ -41,7 +41,7 @@ export default function AdmissoesList() {
 
             const admissoesCompletas = internacoesData.map(int => ({
                 ...int,
-                paciente: pacientesMap[int.pacienteId] || { nome: 'Desconhecido', prontuario: '-', rg: '-' }
+                paciente: pacientesMap[int.pacienteId] || { nome: 'Desconhecido', prontuario: '-' }
             }));
 
             setAdmissoes(admissoesCompletas);

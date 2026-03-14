@@ -17,7 +17,6 @@ export const createPaciente = async (pacienteData) => {
         const docRef = await addDoc(collection(db, collectionName), {
             prontuario: pacienteData.prontuario,
             nome: pacienteData.nome,
-            rg: pacienteData.rg,
             createdAt: new Date().toISOString()
         });
         return docRef.id;
@@ -64,8 +63,7 @@ export const updatePaciente = async (id, updatedData) => {
     try {
         const pacienteRef = doc(db, collectionName, id);
         await updateDoc(pacienteRef, {
-            nome: updatedData.nome,
-            rg: updatedData.rg
+            nome: updatedData.nome
         });
     } catch (error) {
         console.error("Erro ao atualizar dados do paciente: ", error);
