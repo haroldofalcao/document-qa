@@ -1,6 +1,6 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore, Timestamp } = require("firebase-admin/firestore");
+const { getFirestore } = require("firebase-admin/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const nodemailer = require("nodemailer");
 
@@ -24,18 +24,36 @@ exports.enviarRelatorioVisitas = onSchedule(
     const destinatarios = configSnap.data().destinatarios || [];
     if (destinatarios.length === 0) { console.warn("Nenhum destinatário."); return; }
 
+    // Calcula a data de hoje em BRT (America/Sao_Paulo)
+    // "sv-SE" retorna YYYY-MM-DD, que é o mesmo formato gravado em data_hora
     const agora = new Date();
-    const inicioDia = new Date(agora); inicioDia.setHours(0, 0, 0, 0);
-    const fimDia = new Date(agora); fimDia.setHours(23, 59, 59, 999);
+    const hojeStr = agora.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+    const amanhaBrt = new Date(agora.getTime() + 24 * 60 * 60 * 1000);
+    const amanhaStr = amanhaBrt.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 
+    // Busca visitas do dia usando comparação de string (data_hora é "YYYY-MM-DD")
+    // Suporta também registros legados com datetime completo ("YYYY-MM-DDTHH:mm")
     const visitasSnap = await db
       .collection("visitas")
-      .where("data", ">=", Timestamp.fromDate(inicioDia))
-      .where("data", "<=", Timestamp.fromDate(fimDia))
-      .orderBy("data", "asc")
+      .where("data_hora", ">=", hojeStr)
+      .where("data_hora", "<", amanhaStr)
+      .orderBy("data_hora", "asc")
       .get();
 
     const visitas = visitasSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    // Busca nomes dos pacientes (não são gravados diretamente na visita)
+    const pacienteIds = [...new Set(visitas.map(v => v.pacienteId).filter(Boolean))];
+    const pacientesMap = {};
+    if (pacienteIds.length > 0) {
+      const docs = await Promise.all(pacienteIds.map(id => db.collection("pacientes").doc(id).get()));
+      docs.forEach(d => { if (d.exists) pacientesMap[d.id] = d.data(); });
+    }
+
+    const visitasEnriquecidas = visitas.map(v => ({
+      ...v,
+      paciente_nome: pacientesMap[v.pacienteId]?.nome || "—",
+    }));
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -44,33 +62,31 @@ exports.enviarRelatorioVisitas = onSchedule(
 
     const dataFormatada = agora.toLocaleDateString("pt-BR", {
       weekday: "long", day: "2-digit", month: "long", year: "numeric",
+      timeZone: "America/Sao_Paulo",
     });
 
     await transporter.sendMail({
       from: `"Sistema de Visitas" <${GMAIL_USER.value()}>`,
       to: destinatarios.join(","),
       subject: `Relatório de Visitas — ${dataFormatada}`,
-      html: gerarHtmlRelatorio(visitas, dataFormatada),
+      html: gerarHtmlRelatorio(visitasEnriquecidas, dataFormatada, agora),
     });
 
     console.log(`Relatório enviado para ${destinatarios.length} destinatário(s). Visitas: ${visitas.length}`);
   }
 );
 
-function gerarHtmlRelatorio(visitas, dataFormatada) {
+function gerarHtmlRelatorio(visitas, dataFormatada, agora) {
   const linhasVisitas = visitas.length === 0
     ? `<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Nenhuma visita registrada hoje.</td></tr>`
     : visitas.map((v, i) => {
-        const hora = v.data?.toDate
-          ? v.data.toDate().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-          : "--:--";
         return `
         <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8f9fa"}">
-          <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${hora}</td>
-          <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.paciente || "—"}</td>
-          <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.medico || "—"}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.data_hora || "—"}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.paciente_nome}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.nome_medico || "—"}</td>
           <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">
-            <span style="background:${statusCor(v.status)};color:#fff;padding:3px 10px;border-radius:12px;font-size:12px;">${v.status || "—"}</span>
+            <span style="background:${statusCor(v.status_pagamento)};color:#fff;padding:3px 10px;border-radius:12px;font-size:12px;">${v.status_pagamento || "—"}</span>
           </td>
         </tr>`;
       }).join("");
@@ -103,7 +119,7 @@ function gerarHtmlRelatorio(visitas, dataFormatada) {
             <td style="padding:16px 32px 28px;">
               <table width="100%" style="border:1px solid #e9ecef;border-radius:6px;font-size:14px;">
                 <thead><tr style="background:#f8f9fa;">
-                  <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Horário</th>
+                  <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Data</th>
                   <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Paciente</th>
                   <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Médico</th>
                   <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Status</th>
@@ -115,7 +131,7 @@ function gerarHtmlRelatorio(visitas, dataFormatada) {
           <tr>
             <td style="background:#f8f9fa;padding:16px 32px;border-top:1px solid #e9ecef;">
               <p style="margin:0;font-size:12px;color:#999;text-align:center;">
-                Enviado automaticamente · ${new Date().toLocaleString("pt-BR")}
+                Enviado automaticamente · ${agora.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
               </p>
             </td>
           </tr>
@@ -126,6 +142,6 @@ function gerarHtmlRelatorio(visitas, dataFormatada) {
 }
 
 function statusCor(status) {
-  const cores = { realizada: "#28a745", pendente: "#ffc107", cancelada: "#dc3545", agendada: "#17a2b8" };
-  return cores[(status || "").toLowerCase()] || "#6c757d";
+  const cores = { "Pendente": "#ffc107", "Pago": "#28a745", "Glosa": "#dc3545" };
+  return cores[status] || "#6c757d";
 }
