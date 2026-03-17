@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import { getMedicos, createMedico, updateMedico, deleteMedico } from '../services/medicosService';
 import { useAuth } from '../contexts/AuthContext';
 import { UserPlus, ShieldCheck, ShieldOff, UserCheck, UserMinus, X, Pencil, Trash2 } from 'lucide-react';
@@ -27,9 +29,35 @@ export default function MedicosPage() {
     // Modal de confirmação genérico
     const [confirm, setConfirm] = useState(null);
 
+    // Destinatários do relatório diário
+    const [destinatarios, setDestinatarios] = useState([]);
+    const [novoEmailDestinatario, setNovoEmailDestinatario] = useState('');
+
     useEffect(() => {
         loadMedicos();
+        carregarDestinatarios();
     }, []);
+
+    const carregarDestinatarios = async () => {
+        const snap = await getDoc(doc(db, 'email_report', 'config'));
+        if (snap.exists()) setDestinatarios(snap.data().destinatarios || []);
+    };
+
+    const adicionarDestinatario = async () => {
+        const email = novoEmailDestinatario.trim().toLowerCase();
+        if (!email || !email.includes('@')) return;
+        if (destinatarios.includes(email)) return;
+        const nova = [...destinatarios, email];
+        await setDoc(doc(db, 'email_report', 'config'), { destinatarios: nova }, { merge: true });
+        setDestinatarios(nova);
+        setNovoEmailDestinatario('');
+    };
+
+    const removerDestinatario = async (email) => {
+        const nova = destinatarios.filter(e => e !== email);
+        await setDoc(doc(db, 'email_report', 'config'), { destinatarios: nova }, { merge: true });
+        setDestinatarios(nova);
+    };
 
     const loadMedicos = async () => {
         try {
@@ -426,6 +454,48 @@ export default function MedicosPage() {
                         </tbody>
                     </table>
                 )}
+            </div>
+
+            {/* Destinatários do Relatório Diário */}
+            <div className="mt-8">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">Destinatários do Relatório Diário</h2>
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                    <p className="text-sm text-gray-500 mb-4">E-mails que recebem o relatório automático todas as noites.</p>
+                    <div className="flex gap-2 mb-4">
+                        <input
+                            type="email"
+                            placeholder="novo@email.com"
+                            value={novoEmailDestinatario}
+                            onChange={e => setNovoEmailDestinatario(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && adicionarDestinatario()}
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                            onClick={adicionarDestinatario}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                        >
+                            Adicionar
+                        </button>
+                    </div>
+                    {destinatarios.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-4">Nenhum destinatário cadastrado.</p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {destinatarios.map(email => (
+                                <li key={email} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2">
+                                    <span className="text-sm text-gray-700">{email}</span>
+                                    <button
+                                        onClick={() => removerDestinatario(email)}
+                                        className="text-red-400 hover:text-red-600 transition-colors ml-2"
+                                        title="Remover"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             </div>
         </div>
     );

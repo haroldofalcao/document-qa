@@ -50,9 +50,19 @@ exports.enviarRelatorioVisitas = onSchedule(
       docs.forEach(d => { if (d.exists) pacientesMap[d.id] = d.data(); });
     }
 
+    // Busca numero_registro das internações vinculadas às visitas
+    const internacaoIds = [...new Set(visitas.map(v => v.internacaoId).filter(Boolean))];
+    const internacoesMap = {};
+    if (internacaoIds.length > 0) {
+      const docs = await Promise.all(internacaoIds.map(id => db.collection("internacoes").doc(id).get()));
+      docs.forEach(d => { if (d.exists) internacoesMap[d.id] = d.data(); });
+    }
+
     const visitasEnriquecidas = visitas.map(v => ({
       ...v,
       paciente_nome: pacientesMap[v.pacienteId]?.nome || "—",
+      numero_registro: internacoesMap[v.internacaoId]?.numero_registro || "—",
+      tipo_visita_label: tipoVisitaLabel(v.tipo_visita),
     }));
 
     const transporter = nodemailer.createTransport({
@@ -78,12 +88,17 @@ exports.enviarRelatorioVisitas = onSchedule(
 
 function gerarHtmlRelatorio(visitas, dataFormatada, agora) {
   const linhasVisitas = visitas.length === 0
-    ? `<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Nenhuma visita registrada hoje.</td></tr>`
+    ? `<tr><td colspan="6" style="text-align:center;padding:20px;color:#666;">Nenhuma visita registrada hoje.</td></tr>`
     : visitas.map((v, i) => {
+        const cor = tipoCor(v.tipo_visita);
         return `
         <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8f9fa"}">
           <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.data_hora || "—"}</td>
           <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.paciente_nome}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.numero_registro}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">
+            <span style="background:${cor.bg};color:${cor.text};padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;">${v.tipo_visita_label}</span>
+          </td>
           <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">${v.nome_medico || "—"}</td>
           <td style="padding:10px 14px;border-bottom:1px solid #e9ecef;">
             <span style="background:${statusCor(v.status_pagamento)};color:#fff;padding:3px 10px;border-radius:12px;font-size:12px;">${v.status_pagamento || "—"}</span>
@@ -121,6 +136,8 @@ function gerarHtmlRelatorio(visitas, dataFormatada, agora) {
                 <thead><tr style="background:#f8f9fa;">
                   <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Data</th>
                   <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Paciente</th>
+                  <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Registro</th>
+                  <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Tipo</th>
                   <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Médico</th>
                   <th style="padding:10px 14px;text-align:left;color:#555;border-bottom:2px solid #dee2e6;">Status</th>
                 </tr></thead>
@@ -139,6 +156,20 @@ function gerarHtmlRelatorio(visitas, dataFormatada, agora) {
       </td></tr>
     </table>
   </body></html>`;
+}
+
+function tipoVisitaLabel(tipo) {
+  const labels = { "E": "Enteral", "P": "Parenteral", "EP": "Ambas" };
+  return labels[tipo] || "—";
+}
+
+function tipoCor(tipo) {
+  const cores = {
+    "E":  { bg: "#dbeafe", text: "#1d4ed8" },
+    "P":  { bg: "#ede9fe", text: "#6d28d9" },
+    "EP": { bg: "#e0e7ff", text: "#4338ca" },
+  };
+  return cores[tipo] || { bg: "#f3f4f6", text: "#6b7280" };
 }
 
 function statusCor(status) {

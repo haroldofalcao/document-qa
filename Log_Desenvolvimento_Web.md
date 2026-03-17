@@ -38,3 +38,33 @@ Abaixo está o registro completo de tudo o que foi construído e refatorado nest
   * Tipo de Procedimento (Todos, Enteral, Parenteral, Ambas).
   * Médico Visitador (Lista gerada dinamicamente).
 * **Otimização para Impressão e Auditoria**: Implementamos regras de CSS específicas para impressão (`@media print`). Ao clicar no botão **"Imprimir / Salvar PDF"**, o sistema oculta todos os elementos de interface não essenciais (barra lateral, botões, filtros) e gera um layout limpo, com cabeçalho oficial, totalizadores e espaço reservado para assinatura e carimbo do responsável.
+
+---
+
+## Sessão — 16 de Março de 2026
+
+### Correção do Relatório Diário por E-mail (commit `670340e`)
+
+O e-mail era entregue corretamente, mas o corpo do relatório chegava sempre vazio (0 visitas), mesmo quando visitas tinham sido registradas no dia.
+
+**Causa raiz — três bugs combinados em `functions/index.js`:**
+
+1. **Campo errado na query**: O código buscava o campo `"data"` no Firestore, mas o campo real gravado pelas visitas é `"data_hora"`. A query não encontrava nenhum documento.
+
+2. **Tipo errado na comparação**: Mesmo que o campo existisse, a comparação usava `Timestamp.fromDate()` (objeto do Firestore), enquanto `data_hora` é uma *string* `"YYYY-MM-DD"`. Tipos incompatíveis = zero resultados.
+
+3. **Fuso horário incorreto**: A função roda às 23h50 BRT, que equivale a 02h50 UTC do dia seguinte. `new Date()` retornava a data UTC, fazendo a query buscar visitas de amanhã e exibindo a data errada no cabeçalho do e-mail.
+
+**Problemas secundários no template HTML:**
+- `v.paciente`, `v.medico`, `v.status` — campos que não existem na coleção `visitas`
+- Os campos reais são `nome_medico` e `status_pagamento`; o nome do paciente não é gravado na visita e precisava ser buscado na coleção `pacientes` via `pacienteId`
+- Cores de status mapeavam valores antigos (`realizada`, `pendente`) em vez dos atuais (`Pendente`, `Pago`, `Glosa`)
+- Coluna "Horário" não fazia sentido pois visitas só gravam data, não hora
+
+**O que foi corrigido:**
+- Data calculada em BRT com `toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" })` (devolve `YYYY-MM-DD`)
+- Query alterada para `.where("data_hora", ">=", hojeStr).where("data_hora", "<", amanhaStr)` — suporta tanto strings de data pura quanto datetime legado
+- Busca de nomes de pacientes na coleção `pacientes` via `pacienteId` (lookup em paralelo com `Promise.all`)
+- Campos do template corrigidos para `nome_medico`, `status_pagamento`, `paciente_nome`
+- Coluna renomeada de "Horário" para "Data"
+- Timestamps do rodapé corrigidos para BRT
