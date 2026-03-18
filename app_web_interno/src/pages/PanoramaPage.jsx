@@ -83,20 +83,38 @@ export default function PanoramaPage() {
     const NOMES_IGNORADOS = ['migração', 'migracao', 'importação', 'importacao'];
 
     const dadosMedicos = (() => {
-        const contagem = {};
+        // Agrupa por email (quando disponível) para evitar duplicatas nome vs email
+        const porChave = {};
         visitas.forEach(v => {
             if (!v.nome_medico) return;
             if (NOMES_IGNORADOS.includes(v.nome_medico.toLowerCase().trim())) return;
-            contagem[v.nome_medico] = (contagem[v.nome_medico] || 0) + 1;
+            const chave = v.email_medico || v.nome_medico;
+            if (!porChave[chave]) {
+                porChave[chave] = { total: 0, nomes: [] };
+            }
+            porChave[chave].total++;
+            if (!porChave[chave].nomes.includes(v.nome_medico)) {
+                porChave[chave].nomes.push(v.nome_medico);
+            }
         });
 
-        const labelDe = (nome) => {
-            if (nome.includes('@')) return nome.split('@')[0];
-            return nome.split(' ').slice(0, 2).join(' ');
+        const labelDe = (nomes, chave) => {
+            // Prefere o nome que não é um email
+            const nomeSemEmail = nomes.find(n => !n.includes('@'));
+            if (nomeSemEmail) return nomeSemEmail.split(' ').slice(0, 2).join(' ');
+            return chave.includes('@') ? chave.split('@')[0] : chave.split(' ').slice(0, 2).join(' ');
         };
 
-        return Object.entries(contagem)
-            .map(([nome, total]) => ({ nome: labelDe(nome), nomeCompleto: nome, total }))
+        const nomeCompletoDE = (nomes, chave) => {
+            return nomes.find(n => !n.includes('@')) || chave;
+        };
+
+        return Object.entries(porChave)
+            .map(([chave, { total, nomes }]) => ({
+                nome: labelDe(nomes, chave),
+                nomeCompleto: nomeCompletoDE(nomes, chave),
+                total,
+            }))
             .sort((a, b) => b.total - a.total)
             .slice(0, 10);
     })();
@@ -154,30 +172,37 @@ export default function PanoramaPage() {
             )}
 
             {/* Cards de resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                     <p className="text-sm text-gray-500 font-medium">Total de Visitas</p>
                     <p className="text-3xl font-bold text-gray-800 mt-1">{visitas.length}</p>
                     <p className="text-xs text-gray-400 mt-1">histórico completo</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                    <p className="text-sm text-gray-500 font-medium">Enterais</p>
+                    <p className="text-sm text-gray-500 font-medium">Enteral</p>
                     <p className="text-3xl font-bold text-blue-600 mt-1">
-                        {visitas.filter(v => v.tipo_visita === 'E' || v.tipo_visita === 'EP').length}
+                        {visitas.filter(v => v.tipo_visita === 'E').length}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">E + EP combinados</p>
+                    <p className="text-xs text-gray-400 mt-1">somente tipo E</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                    <p className="text-sm text-gray-500 font-medium">Parenterais</p>
+                    <p className="text-sm text-gray-500 font-medium">Parenteral</p>
                     <p className="text-3xl font-bold text-purple-600 mt-1">
-                        {visitas.filter(v => v.tipo_visita === 'P' || v.tipo_visita === 'EP').length}
+                        {visitas.filter(v => v.tipo_visita === 'P').length}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">P + EP combinados</p>
+                    <p className="text-xs text-gray-400 mt-1">somente tipo P</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                    <p className="text-sm text-gray-500 font-medium">Ambas (EP)</p>
+                    <p className="text-3xl font-bold text-indigo-600 mt-1">
+                        {visitas.filter(v => v.tipo_visita === 'EP').length}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">enteral + parenteral</p>
                 </div>
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                     <p className="text-sm text-gray-500 font-medium">Profissionais</p>
                     <p className="text-3xl font-bold text-gray-800 mt-1">
-                        {new Set(visitas.map(v => v.nome_medico).filter(n => n && !NOMES_IGNORADOS.includes(n.toLowerCase().trim()))).size}
+                        {new Set(visitas.filter(n => n.nome_medico && !NOMES_IGNORADOS.includes(n.nome_medico.toLowerCase().trim())).map(v => v.email_medico || v.nome_medico)).size}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">médicos ativos</p>
                 </div>

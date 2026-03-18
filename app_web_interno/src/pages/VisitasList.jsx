@@ -51,7 +51,12 @@ export default function VisitasList() {
                 return dataStr === todayStr;
             });
 
-            setVisitas(visitasDeHoje);
+            const visitasOrdenadas = visitasDeHoje.sort((a, b) => {
+                const nomeA = iMap[a.internacaoId]?.paciente_nome || '';
+                const nomeB = iMap[b.internacaoId]?.paciente_nome || '';
+                return nomeA.localeCompare(nomeB, 'pt-BR');
+            });
+            setVisitas(visitasOrdenadas);
         } catch (error) {
             setPaginaErro('Erro ao carregar dados do dashboard. Tente recarregar a página.');
         } finally {

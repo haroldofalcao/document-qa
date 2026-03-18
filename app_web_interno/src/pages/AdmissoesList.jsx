@@ -118,9 +118,10 @@ export default function AdmissoesList() {
 
         setConfirm({
             title: 'Excluir Admissão',
-            message: `ATENÇÃO: Tem certeza que deseja excluir completamente a admissão de ${adm.paciente.nome}? Esta ação é irreversível.`,
+            message: `ATENÇÃO: Tem certeza que deseja excluir completamente a admissão de ${adm.paciente.nome}? Esta ação é irreversível. Digite EXCLUIR para confirmar.`,
             variant: 'danger',
             confirmLabel: 'Excluir',
+            confirmPhrase: 'EXCLUIR',
             onConfirm: async () => {
                 setConfirm(null);
                 try {
@@ -176,6 +177,7 @@ export default function AdmissoesList() {
                 variant={confirm?.variant}
                 confirmLabel={confirm?.confirmLabel}
                 cancelLabel={confirm?.cancelLabel}
+                confirmPhrase={confirm?.confirmPhrase}
                 onConfirm={confirm?.onConfirm}
                 onCancel={() => setConfirm(null)}
             />
@@ -265,10 +267,10 @@ export default function AdmissoesList() {
                                         <td className="p-4 flex justify-center gap-3">
                                             <button onClick={() => handleEdit(adm)} className="text-gray-400 hover:text-blue-500 transition-colors" title="Editar"><Edit size={18} /></button>
                                             {adm.status === 'ativo'
-                                                ? <button onClick={() => handleAlta(adm)} className="text-gray-400 hover:text-orange-500 transition-colors" title="Registrar Alta"><UserMinus size={18} /></button>
+                                                ? <button onClick={() => handleAlta(adm)} className="text-orange-400 hover:text-orange-600 transition-colors" title="Registrar Alta"><UserMinus size={18} /></button>
                                                 : <button onClick={() => handleReadmitir(adm)} className="text-gray-400 hover:text-green-600 transition-colors" title="Readmitir"><UserCheck size={18} /></button>
                                             }
-                                            <button onClick={() => handleDelete(adm)} className="text-gray-400 hover:text-red-600 transition-colors" title="Excluir"><Trash2 size={18} /></button>
+                                            <button onClick={() => handleDelete(adm)} className="text-red-400 hover:text-red-600 transition-colors" title="Excluir"><Trash2 size={18} /></button>
                                         </td>
                                     </tr>
                                 ))}
@@ -300,14 +302,14 @@ export default function AdmissoesList() {
                                             <Edit size={14} /> Editar
                                         </button>
                                         {adm.status === 'ativo'
-                                            ? <button onClick={() => handleAlta(adm)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-orange-500 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors">
+                                            ? <button onClick={() => handleAlta(adm)} className="flex items-center gap-1.5 text-xs text-orange-500 hover:text-orange-700 border border-orange-200 px-3 py-1.5 rounded-lg transition-colors">
                                                 <UserMinus size={14} /> Alta
                                               </button>
                                             : <button onClick={() => handleReadmitir(adm)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-green-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors">
                                                 <UserCheck size={14} /> Readmitir
                                               </button>
                                         }
-                                        <button onClick={() => handleDelete(adm)} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-600 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors ml-auto">
+                                        <button onClick={() => handleDelete(adm)} className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-700 border border-red-200 px-3 py-1.5 rounded-lg transition-colors ml-auto">
                                             <Trash2 size={14} /> Excluir
                                         </button>
                                     </div>
