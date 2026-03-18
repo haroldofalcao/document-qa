@@ -33,14 +33,19 @@ exports.enviarRelatorioVisitas = onSchedule(
 
     // Busca visitas do dia usando comparação de string (data_hora é "YYYY-MM-DD")
     // Suporta também registros legados com datetime completo ("YYYY-MM-DDTHH:mm")
+    // Sem orderBy para evitar dependência de índice composto no Firestore
+    console.log(`Buscando visitas: data_hora >= "${hojeStr}" e < "${amanhaStr}"`);
     const visitasSnap = await db
       .collection("visitas")
       .where("data_hora", ">=", hojeStr)
       .where("data_hora", "<", amanhaStr)
-      .orderBy("data_hora", "asc")
       .get();
 
-    const visitas = visitasSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const visitas = visitasSnap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => (a.data_hora || "").localeCompare(b.data_hora || ""));
+
+    console.log(`Visitas encontradas: ${visitas.length}`);
 
     // Busca nomes dos pacientes (não são gravados diretamente na visita)
     const pacienteIds = [...new Set(visitas.map(v => v.pacienteId).filter(Boolean))];
